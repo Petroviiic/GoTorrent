@@ -7,18 +7,22 @@ import (
 )
 
 type TorrentFile struct {
-	Announce string   `bencode:"announce"`
-	Info     InfoDict `bencode:"info"`
+	Announce     string     `bencode:"announce"`
+	AnnounceList [][]string `bencode:"announce-list"`
+	Comment      string     `bencode:"comment"`
+	CreatedBy    string     `bencode:"created by"`
+	CreationDate int        `bencode:"creation date"`
+	Info         InfoDict   `bencode:"info"`
 }
 
 type InfoDict struct {
+	Length      int    `bencode:"length"`
+	Name        string `bencode:"name"`
 	PieceLength int    `bencode:"piece length"`
 	Pieces      string `bencode:"pieces"`
-	Name        string `bencode:"name"`
-	Length      int    `bencode:"length"`
 }
 
-func Decode(path string) error {
+func LoadAndDecode(path string) error {
 	//cekiraj jel validan path
 
 	buffer, err := os.ReadFile(path)
@@ -26,35 +30,83 @@ func Decode(path string) error {
 		return err
 	}
 
-	for i := 0; i < len(buffer); {
+	decoders := loadDecoders()
 
-		switch b := buffer[i]; {
-		case b == 'i':
-			num, newIndex, err := decodeInt(buffer, i+1)
-
-			if err != nil {
-				break
-			}
-
-			i = newIndex
-			fmt.Println(num)
-		case b == 'l':
-		case b == 'd':
-		case b >= '0' && b <= '9':
-			text, newIndex, err := decodeString(buffer, i)
-			if err != nil {
-				break
-			}
-
-			i = newIndex
-			fmt.Println(text)
-		}
-		i++
+	if _, err := decoders.decode(buffer, 0); err != nil {
+		return err
 	}
+
 	return nil
 }
 
-func decodeInt(buffer []byte, index int) (int, int, error) {
+func (decoders *Decoders) decode(buffer []byte, index int) (any, error) {
+	for i := index; i < len(buffer); {
+		//switch b := buffer[i]; {
+		// case b == 'i':
+		// 	num, newIndex, err := decodeInt(buffer, i+1)
+
+		// 	if err != nil {
+		// 		break
+		// 	}
+
+		// 	i = newIndex
+		// 	fmt.Println(num)
+		// case b == 'l':
+		// 	list, newIndex, err := decodeList(buffer, i)
+		// 	if err != nil {
+		// 		break
+		// 	}
+
+		// 	i = newIndex
+		// 	fmt.Println(list)
+		// case b == 'd':s
+		// case b >= '0' && b <= '9':
+		// 	text, newIndex, err := decodeString(buffer, i)
+		// 	if err != nil {
+		// 		break
+		// 	}
+
+		// 	i = newIndex
+		// 	fmt.Println(text)
+		// }
+
+		switch b := buffer[i]; {
+		case b == 'i':
+			res, newIndex, err := (*decoders)[b](buffer, i)
+
+			if err != nil {
+				break
+			}
+
+			i = newIndex
+			fmt.Println(res)
+		case b == 'l':
+			res, newIndex, err := (*decoders)[b](buffer, i)
+
+			if err != nil {
+				break
+			}
+
+			i = newIndex
+			fmt.Println(res)
+		case b == 'd':
+		case b >= '0' && b <= '9':
+			res, newIndex, err := (*decoders)[b](buffer, i)
+
+			if err != nil {
+				break
+			}
+
+			i = newIndex
+			fmt.Println(res)
+		}
+
+		i++
+	}
+	return nil, nil
+}
+
+func decodeInt(buffer []byte, index int) (any, int, error) {
 	end := index
 	for i := index; i < len(buffer); i++ {
 		b := (buffer)[i]
@@ -70,7 +122,7 @@ func decodeInt(buffer []byte, index int) (int, int, error) {
 	return num, end, err
 }
 
-func decodeString(buffer []byte, index int) (string, int, error) {
+func decodeString(buffer []byte, index int) (any, int, error) {
 	end := index
 	for i := index; i < len(buffer); i++ {
 		b := (buffer)[i]
@@ -86,5 +138,19 @@ func decodeString(buffer []byte, index int) (string, int, error) {
 		return "", -1, err
 	}
 
-	return string(buffer[end+1 : end+1+num]), end + num + 2, err
+	return string(buffer[end+1 : end+1+num]), end + num + 2, nil
+}
+
+func decodeList(buffer []byte, index int) (any, int, error) {
+	end := index
+	for i := index; i < len(buffer); i++ {
+		b := (buffer)[i]
+
+		if b == 'e' {
+			end = i
+			break
+		}
+	}
+
+	return []int{}, end, nil
 }
