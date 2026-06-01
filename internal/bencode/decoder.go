@@ -41,13 +41,13 @@ func Decode(path string) error {
 		case b == 'l':
 		case b == 'd':
 		case b >= '0' && b <= '9':
-			num, newIndex, err := decodeString(buffer, i)
+			text, newIndex, err := decodeString(buffer, i)
 			if err != nil {
 				break
 			}
 
 			i = newIndex
-			fmt.Println(num)
+			fmt.Println(text)
 		}
 		i++
 	}
@@ -68,4 +68,23 @@ func decodeInt(buffer []byte, index int) (int, int, error) {
 	// fmt.Println(num, err)
 
 	return num, end, err
+}
+
+func decodeString(buffer []byte, index int) (string, int, error) {
+	end := index
+	for i := index; i < len(buffer); i++ {
+		b := (buffer)[i]
+		if b == ':' {
+			end = i
+			break
+		}
+	}
+
+	num, err := strconv.Atoi(string(buffer[index:end]))
+
+	if err != nil {
+		return "", -1, err
+	}
+
+	return string(buffer[end+1 : end+1+num]), end + num + 2, err
 }
