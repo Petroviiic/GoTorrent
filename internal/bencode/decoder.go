@@ -30,49 +30,20 @@ func LoadAndDecode(path string) error {
 		return err
 	}
 
-	decoders := loadDecoders()
+	decoder := newDecoder(buffer)
 
-	if _, err := decoders.decode(buffer, 0); err != nil {
+	if _, err := decoder.decode(buffer, 0); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (decoders *Decoders) decode(buffer []byte, index int) (any, error) {
+func (d *Decoder) decode(buffer []byte, index int) (any, error) {
 	for i := index; i < len(buffer); {
-		//switch b := buffer[i]; {
-		// case b == 'i':
-		// 	num, newIndex, err := decodeInt(buffer, i+1)
-
-		// 	if err != nil {
-		// 		break
-		// 	}
-
-		// 	i = newIndex
-		// 	fmt.Println(num)
-		// case b == 'l':
-		// 	list, newIndex, err := decodeList(buffer, i)
-		// 	if err != nil {
-		// 		break
-		// 	}
-
-		// 	i = newIndex
-		// 	fmt.Println(list)
-		// case b == 'd':s
-		// case b >= '0' && b <= '9':
-		// 	text, newIndex, err := decodeString(buffer, i)
-		// 	if err != nil {
-		// 		break
-		// 	}
-
-		// 	i = newIndex
-		// 	fmt.Println(text)
-		// }
-
 		switch b := buffer[i]; {
 		case b == 'i':
-			res, newIndex, err := (*decoders)[b](buffer, i)
+			res, newIndex, err := d.decoders[b](i)
 
 			if err != nil {
 				break
@@ -81,7 +52,7 @@ func (decoders *Decoders) decode(buffer []byte, index int) (any, error) {
 			i = newIndex
 			fmt.Println(res)
 		case b == 'l':
-			res, newIndex, err := (*decoders)[b](buffer, i)
+			res, newIndex, err := d.decoders[b](i)
 
 			if err != nil {
 				break
@@ -91,7 +62,7 @@ func (decoders *Decoders) decode(buffer []byte, index int) (any, error) {
 			fmt.Println(res)
 		case b == 'd':
 		case b >= '0' && b <= '9':
-			res, newIndex, err := (*decoders)[b](buffer, i)
+			res, newIndex, err := d.decoders[b](i)
 
 			if err != nil {
 				break
@@ -106,45 +77,41 @@ func (decoders *Decoders) decode(buffer []byte, index int) (any, error) {
 	return nil, nil
 }
 
-func decodeInt(buffer []byte, index int) (any, int, error) {
+func (d *Decoder) decodeInt(index int) (any, int, error) {
 	end := index
-	for i := index; i < len(buffer); i++ {
-		b := (buffer)[i]
+	for i := index; i < len(d.buffer); i++ {
+		b := (d.buffer)[i]
 		if b == 'e' {
 			end = i
 			break
 		}
 	}
-	// fmt.Println(string(buffer[index-1 : end]))
-	num, err := strconv.Atoi(string(buffer[index:end]))
-	// fmt.Println(num, err)
-
+	num, err := strconv.Atoi(string(d.buffer[index:end]))
 	return num, end, err
 }
 
-func decodeString(buffer []byte, index int) (any, int, error) {
+func (d *Decoder) decodeString(index int) (any, int, error) {
 	end := index
-	for i := index; i < len(buffer); i++ {
-		b := (buffer)[i]
+	for i := index; i < len(d.buffer); i++ {
+		b := (d.buffer)[i]
 		if b == ':' {
 			end = i
 			break
 		}
 	}
-
-	num, err := strconv.Atoi(string(buffer[index:end]))
+	num, err := strconv.Atoi(string(d.buffer[index:end]))
 
 	if err != nil {
 		return "", -1, err
 	}
 
-	return string(buffer[end+1 : end+1+num]), end + num + 2, nil
+	return string(d.buffer[end+1 : end+1+num]), end + num + 2, nil
 }
 
-func decodeList(buffer []byte, index int) (any, int, error) {
+func (d *Decoder) decodeList(index int) (any, int, error) {
 	end := index
-	for i := index; i < len(buffer); i++ {
-		b := (buffer)[i]
+	for i := index; i < len(d.buffer); i++ {
+		b := (d.buffer)[i]
 
 		if b == 'e' {
 			end = i
