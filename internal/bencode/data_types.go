@@ -1,15 +1,21 @@
 package bencode
 
-type Decoders map[byte]func([]byte, int) (any, int, error)
+type Decoder struct {
+	buffer   []byte
+	decoders map[byte]func(int) (any, int, error) // Funkcije sad primaju samo indeks!
+}
 
-func loadDecoders() *Decoders {
-	decoders := make(Decoders)
-	decoders['i'] = decodeInt
-	decoders['l'] = decodeList
-	// DecoderFunc['d'] = decodeDictionary
-	for c := '0'; c <= '9'; c++ {
-		decoders[byte(c)] = decodeString
+func newDecoder(buffer []byte) *Decoder {
+	decoder := &Decoder{
+		buffer: buffer,
 	}
 
-	return &decoders
+	decoder.decoders['i'] = decoder.decodeInt
+	decoder.decoders['l'] = decoder.decodeList
+	// DecoderFunc['d'] = decodeDictionary
+	for c := '0'; c <= '9'; c++ {
+		decoder.decoders[byte(c)] = decoder.decodeString
+	}
+
+	return decoder
 }
