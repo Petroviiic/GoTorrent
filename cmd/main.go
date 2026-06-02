@@ -17,7 +17,7 @@ func main() {
 
 	fmt.Println(path)
 
-	err := bencode.Decode(path)
+	err := bencode.LoadAndDecode(path)
 
 	if err != nil {
 		fmt.Printf("Fatal: error %v", err)
