@@ -7,12 +7,13 @@ type Decoder struct {
 
 func newDecoder(buffer []byte) *Decoder {
 	decoder := &Decoder{
-		buffer: buffer,
+		buffer:   buffer,
+		decoders: make(map[byte]func(int) (any, int, error)),
 	}
 
 	decoder.decoders['i'] = decoder.decodeInt
 	decoder.decoders['l'] = decoder.decodeList
-	// DecoderFunc['d'] = decodeDictionary
+	decoder.decoders['d'] = decoder.decodeDictionary
 	for c := '0'; c <= '9'; c++ {
 		decoder.decoders[byte(c)] = decoder.decodeString
 	}
