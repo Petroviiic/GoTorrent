@@ -1,0 +1,5 @@
+package bencode
+
+func TestDecoders() {
+
+}
