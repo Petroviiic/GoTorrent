@@ -61,6 +61,14 @@ func (d *Decoder) decode(buffer []byte, index int) (any, error) {
 			i = newIndex
 			fmt.Println(res)
 		case b == 'd':
+			res, newIndex, err := d.decoders[b](i)
+
+			if err != nil {
+				break
+			}
+
+			i = newIndex
+			fmt.Println(res)
 		case b >= '0' && b <= '9':
 			res, newIndex, err := d.decoders[b](i)
 
@@ -72,7 +80,7 @@ func (d *Decoder) decode(buffer []byte, index int) (any, error) {
 			fmt.Println(res)
 		}
 
-		i++
+		//i++
 	}
 	return nil, nil
 }
@@ -87,7 +95,7 @@ func (d *Decoder) decodeInt(index int) (any, int, error) {
 		}
 	}
 	num, err := strconv.Atoi(string(d.buffer[index:end]))
-	return num, end, err
+	return num, end + 1, err
 }
 
 func (d *Decoder) decodeString(index int) (any, int, error) {
@@ -105,7 +113,7 @@ func (d *Decoder) decodeString(index int) (any, int, error) {
 		return "", -1, err
 	}
 
-	return string(d.buffer[end+1 : end+1+num]), end + num + 2, nil
+	return string(d.buffer[end+1 : end+1+num]), end + num + 3, nil
 }
 
 func (d *Decoder) decodeList(index int) (any, int, error) {
@@ -130,7 +138,7 @@ func (d *Decoder) decodeList(index int) (any, int, error) {
 		}
 	}
 
-	return res, end, nil
+	return res, end + 1, nil
 }
 
 func (d *Decoder) decodeDictionary(index int) (any, int, error) {
@@ -165,5 +173,5 @@ func (d *Decoder) decodeDictionary(index int) (any, int, error) {
 		}
 	}
 
-	return res, end, nil
+	return res, end + 1, nil
 }
