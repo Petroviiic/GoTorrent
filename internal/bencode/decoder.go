@@ -110,8 +110,8 @@ func (d *Decoder) decodeString(index int) (any, int, error) {
 
 func (d *Decoder) decodeList(index int) (any, int, error) {
 	res := []any{}
-	end := index
 
+	end := index
 	for i := index; i < len(d.buffer); i++ {
 		b := (d.buffer)[i]
 
@@ -134,5 +134,36 @@ func (d *Decoder) decodeList(index int) (any, int, error) {
 }
 
 func (d *Decoder) decodeDictionary(index int) (any, int, error) {
+	res := map[any]any{}
 
+	end := index
+	isKey := true
+	var lastKey any
+	for i := index; i < len(d.buffer); i++ {
+		b := (d.buffer)[i]
+
+		item, newIndex, err := d.decoders[b](i)
+
+		if err != nil {
+			return nil, -1, err
+		}
+
+		if isKey {
+			res[item] = false
+			lastKey = item
+			isKey = false
+		} else {
+			res[lastKey] = item
+			lastKey = nil
+			isKey = true
+		}
+		i = newIndex
+
+		if b == 'e' {
+			end = i
+			break
+		}
+	}
+
+	return res, end, nil
 }
