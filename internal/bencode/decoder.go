@@ -32,14 +32,17 @@ func LoadAndDecode(path string) error {
 
 	decoder := NewDecoder(buffer)
 
-	if _, err := decoder.Decode(buffer, 0); err != nil {
+	data, err := decoder.Decode(buffer, 0)
+	if err != nil {
 		return err
 	}
-
+	fmt.Println(data)
 	return nil
 }
 
 func (d *Decoder) Decode(buffer []byte, index int) (any, error) {
+
+	mainMap := map[any]any{}
 	for i := index; i < len(buffer); {
 		switch b := buffer[i]; {
 		case b == 'i':
@@ -52,6 +55,11 @@ func (d *Decoder) Decode(buffer []byte, index int) (any, error) {
 
 			i = newIndex
 			fmt.Println(res)
+
+			if res == 497360 {
+				fmt.Println("EVO OME SPASAVAM TE OD SPAMA PLIZ SE SAUSTAVI")
+				return nil, nil
+			}
 		case b == 'l':
 			res, newIndex, err := d.Decoders[b](i)
 
@@ -78,12 +86,49 @@ func (d *Decoder) Decode(buffer []byte, index int) (any, error) {
 			}
 
 			i = newIndex
+
 			fmt.Println(res)
 		}
 
 		//i++
 	}
-	return nil, nil
+	return parseDictionaryData(mainMap), nil
+}
+
+func parseDictionaryData(mainMap map[any]any) *TorrentFile {
+	torrentData := &TorrentFile{}
+
+	if info, exists := mainMap["announce"]; exists {
+		torrentData.Announce = info.(string)
+	}
+	if announce_list, exists := mainMap["announce-list"]; exists {
+		torrentData.AnnounceList = announce_list.([][]string)
+	}
+	if comment, exists := mainMap["comment"]; exists {
+		torrentData.Comment = comment.(string)
+	}
+	if created_by, exists := mainMap["created by"]; exists {
+		torrentData.CreatedBy = created_by.(string)
+	}
+	if creation_date, exists := mainMap["creation date"]; exists {
+		torrentData.CreationDate = creation_date.(int)
+	}
+
+	if infoDict, exists := mainMap["info"]; exists {
+		inner := infoDict.(map[any]any)
+		if name, ok := inner["name"]; ok {
+			torrentData.Info.Name = name.(string)
+		}
+		if length, ok := inner["length"]; ok {
+			torrentData.Info.Length = length.(int)
+		}
+		if pieceLength, ok := inner["piece length"]; ok {
+			torrentData.Info.PieceLength = pieceLength.(int)
+		}
+		//pieces
+	}
+
+	return torrentData
 }
 
 func (d *Decoder) DecodeInt(index int) (any, int, error) {
