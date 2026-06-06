@@ -1,7 +1,6 @@
 package bencode
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 )
@@ -22,22 +21,22 @@ type InfoDict struct {
 	Pieces      []byte `bencode:"pieces"`
 }
 
-func LoadAndDecode(path string) error {
+func LoadAndDecode(path string) (*TorrentFile, error) {
 	//cekiraj jel validan path
 
 	buffer, err := os.ReadFile(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	decoder := NewDecoder(buffer)
 
 	data, err := decoder.Decode(buffer, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fmt.Printf("%+v\n", data)
-	return nil
+	//fmt.Printf("%+v\n", data)
+	return data, err
 }
 
 func (d *Decoder) Decode(buffer []byte, index int) (*TorrentFile, error) {
