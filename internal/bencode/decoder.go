@@ -40,35 +40,10 @@ func LoadAndDecode(path string) error {
 	return nil
 }
 
-func (d *Decoder) Decode(buffer []byte, index int) (any, error) {
-
+func (d *Decoder) Decode(buffer []byte, index int) (*TorrentFile, error) {
 	mainMap := map[any]any{}
 	for i := index; i < len(buffer); {
 		switch b := buffer[i]; {
-		// case b == 'i':
-		// 	res, newIndex, err := d.Decoders[b](i)
-
-		// 	if err != nil {
-		// 		//ovdje vjv treba return, jer ce biti infinity loop ako se desi greska
-		// 		break
-		// 	}
-
-		// 	i = newIndex
-		// 	fmt.Println(res)
-
-		// 	if res == 497360 {
-		// 		fmt.Println("EVO OME SPASAVAM TE OD SPAMA PLIZ SE SAUSTAVI")
-		// 		return nil, nil
-		// 	}
-		// case b == 'l':
-		// 	res, newIndex, err := d.Decoders[b](i)
-
-		// 	if err != nil {
-		// 		break
-		// 	}
-
-		// 	i = newIndex
-		// 	fmt.Println(res)
 		case b == 'd':
 			res, newIndex, err := d.Decoders[b](i)
 
@@ -77,21 +52,8 @@ func (d *Decoder) Decode(buffer []byte, index int) (any, error) {
 			}
 
 			i = newIndex
-			// fmt.Println(res)
 			mainMap = res.(map[any]any)
-			// case b >= '0' && b <= '9':
-			// 	res, newIndex, err := d.Decoders[b](i)
-
-			// 	if err != nil {
-			// 		break
-			// 	}
-
-			// 	i = newIndex
-
-			// 	fmt.Println(res)
 		}
-
-		//i++
 	}
 	return parseDictionaryData(mainMap), nil
 }
