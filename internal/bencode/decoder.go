@@ -1,6 +1,7 @@
 package bencode
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -21,25 +22,25 @@ type InfoDict struct {
 	Pieces      []byte `bencode:"pieces"`
 }
 
-func LoadAndDecode(path string) (*TorrentFile, error) {
+func LoadAndDecode(path string) (*TorrentFile, string, error) {
 	//cekiraj jel validan path
 
 	buffer, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	decoder := NewDecoder(buffer)
 
-	data, err := decoder.Decode(buffer, 0)
+	torrentData, infoDictEncode, err := decoder.Decode(buffer, 0)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	//fmt.Printf("%+v\n", data)
-	return data, err
+	return torrentData, infoDictEncode, err
 }
 
-func (d *Decoder) Decode(buffer []byte, index int) (*TorrentFile, error) {
+func (d *Decoder) Decode(buffer []byte, index int) (*TorrentFile, string, error) {
 	mainMap := map[any]any{}
 	for i := index; i < len(buffer); {
 		switch b := buffer[i]; {
@@ -54,7 +55,17 @@ func (d *Decoder) Decode(buffer []byte, index int) (*TorrentFile, error) {
 			mainMap = res.(map[any]any)
 		}
 	}
-	return parseDictionaryData(mainMap), nil
+
+	if _, exists := mainMap["info"]; !exists {
+		return nil, "", fmt.Errorf("info field doesnt exist")
+	}
+	encodedInfoDict, err := Encode(mainMap["info"])
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	return parseDictionaryData(mainMap), Hash(encodedInfoDict), nil
 }
 
 func parseDictionaryData(mainMap map[any]any) *TorrentFile {
