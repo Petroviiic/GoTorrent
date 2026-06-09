@@ -62,12 +62,7 @@ func (d *Decoder) Decode(buffer []byte, index int) (map[any]any, error) {
 	}
 
 	if _, exists := mainMap["info"]; !exists {
-		return nil, "", fmt.Errorf("info field doesnt exist")
-	}
-	encodedInfoDict, err := Encode(mainMap["info"])
-
-	if err != nil {
-		return nil, "", err
+		return nil, fmt.Errorf("info field doesnt exist")
 	}
 
 	return mainMap, nil
