@@ -20,14 +20,14 @@ func TestDecoders(t *testing.T) {
 			name:          "short word decoding",
 			buffer:        []byte("5:world"),
 			wantErr:       false,
-			expectedRes:   "world",
+			expectedRes:   []byte("world"),
 			expectedIndex: len([]byte("5:world")),
 		},
 		{
 			name:          "longer word decoding",
 			buffer:        []byte("15:computerscience"),
 			wantErr:       false,
-			expectedRes:   "computerscience",
+			expectedRes:   []byte("computerscience"),
 			expectedIndex: len([]byte("15:computerscience")),
 		},
 
@@ -57,14 +57,14 @@ func TestDecoders(t *testing.T) {
 			name:          "list decoding 1",
 			buffer:        []byte("l7:bencodee"),
 			wantErr:       false,
-			expectedRes:   []any{"bencode"},
+			expectedRes:   []any{[]byte("bencode")},
 			expectedIndex: len([]byte("l7:bencodee")),
 		},
 		{
 			name:          "list decoding 2",
 			buffer:        []byte("l7:bencodei-20ee"),
 			wantErr:       false,
-			expectedRes:   []any{"bencode", -20},
+			expectedRes:   []any{[]byte("bencode"), -20},
 			expectedIndex: len([]byte("l7:bencodei-20ee")),
 		},
 
@@ -72,7 +72,7 @@ func TestDecoders(t *testing.T) {
 			name:          "dictionary decoding",
 			buffer:        []byte("d7:meaningi42e4:wiki7:bencodee"),
 			wantErr:       false,
-			expectedRes:   map[any]any{"meaning": 42, "wiki": "bencode"},
+			expectedRes:   map[any]any{"meaning": 42, "wiki": []byte("bencode")},
 			expectedIndex: len([]byte("d7:meaningi42e4:wiki7:bencodee")),
 		},
 	}
