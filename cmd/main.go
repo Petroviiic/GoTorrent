@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
+	"github.com/Petroviiic/GoTorrent/internal/tracker"
+	"github.com/Petroviiic/GoTorrent/internal/utils"
 )
 
 func main() {
@@ -15,14 +17,13 @@ func main() {
 
 	path := os.Args[1]
 
-	// fmt.Println(path)
-
-	torrentFile, infoDictEncode, err := bencode.LoadAndDecode(path)
+	torrentFile, infoHash, err := bencode.LoadAndDecode(path)
 	if err != nil {
 		fmt.Printf("Fatal: error %v", err)
 		os.Exit(1)
 	}
 
-	_ = torrentFile
-	_ = infoDictEncode
+	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
+
+	tracker.GetPeers(torrentFile, infoHash, peerID)
 }
