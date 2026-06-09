@@ -32,15 +32,20 @@ func LoadAndDecode(path string) (*TorrentFile, string, error) {
 
 	decoder := NewDecoder(buffer)
 
-	torrentData, infoDictEncode, err := decoder.Decode(buffer, 0)
+	torrentDataMap, err := decoder.Decode(buffer, 0)
 	if err != nil {
 		return nil, "", err
 	}
-	//fmt.Printf("%+v\n", data)
-	return torrentData, infoDictEncode, err
+
+	encodedInfoDict, err := Encode(torrentDataMap["info"])
+	if err != nil {
+		return nil, "", err
+	}
+
+	return ParseTorrentMap(torrentDataMap), Hash(encodedInfoDict), err
 }
 
-func (d *Decoder) Decode(buffer []byte, index int) (*TorrentFile, string, error) {
+func (d *Decoder) Decode(buffer []byte, index int) (map[any]any, error) {
 	mainMap := map[any]any{}
 	for i := index; i < len(buffer); {
 		switch b := buffer[i]; {
@@ -65,10 +70,10 @@ func (d *Decoder) Decode(buffer []byte, index int) (*TorrentFile, string, error)
 		return nil, "", err
 	}
 
-	return parseDictionaryData(mainMap), Hash(encodedInfoDict), nil
+	return mainMap, nil
 }
 
-func parseDictionaryData(mainMap map[any]any) *TorrentFile {
+func ParseTorrentMap(mainMap map[any]any) *TorrentFile {
 	torrentData := &TorrentFile{}
 
 	if info, exists := mainMap["announce"]; exists {
