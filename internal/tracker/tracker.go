@@ -1,17 +1,42 @@
 package tracker
 
 import (
+	"fmt"
+	"io"
 	"log"
-	"net/url"
+	"net/http"
+	"strconv"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
 )
 
-func GetPeers(torrentData *bencode.TorrentFile, infoHash string, peerID string) {
-	baseURL, err := url.Parse("https://example.com")
+func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) {
+	req, err := http.NewRequest("GET", torrentData.Announce, nil)
 	if err != nil {
-		log.Fatalf("Failed to parse URL: %v", err)
+		log.Print(err)
+		return
 	}
 
-	// http.Get(torrentData.)
+	params := req.URL.Query()
+
+	left := strconv.Itoa(torrentData.Info.Length)
+	params.Add("info_hash", string(infoHash))
+	params.Add("peer_id", string(peerID))
+	params.Add("port", "6881")
+	params.Add("uploaded", "0")
+	params.Add("downloaded", "0")
+	params.Add("left", left)
+	params.Add("compact", "1")
+
+	req.URL.RawQuery = params.Encode()
+
+	resp, err := http.Get(req.URL.String())
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+
 }
