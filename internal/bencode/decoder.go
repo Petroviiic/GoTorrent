@@ -22,24 +22,24 @@ type InfoDict struct {
 	Pieces      []byte `bencode:"pieces"`
 }
 
-func LoadAndDecode(path string) (*TorrentFile, string, error) {
+func LoadAndDecode(path string) (*TorrentFile, []byte, error) {
 	//cekiraj jel validan path
 
 	buffer, err := os.ReadFile(path)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	decoder := NewDecoder(buffer)
 
 	torrentDataMap, err := decoder.Decode(buffer, 0)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	encodedInfoDict, err := Encode(torrentDataMap["info"])
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	return ParseTorrentMap(torrentDataMap), Hash(encodedInfoDict), err

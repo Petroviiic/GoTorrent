@@ -3,7 +3,6 @@ package bencode
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"strconv"
@@ -82,11 +81,12 @@ func Encode(data any) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func Hash(data []byte) string {
+func Hash(data []byte) []byte {
 	hash := sha1.New()
 	hash.Write(data)
 	hashedData := hash.Sum(nil)
-	hashedString := hex.EncodeToString(hashedData)
 
-	return hashedString
+	return hashedData
+	// hashedString := hex.EncodeToString(hashedData)
+	// return hashedString
 }
