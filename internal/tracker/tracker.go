@@ -39,4 +39,21 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) {
 	body, _ := io.ReadAll(resp.Body)
 	fmt.Println(string(body))
 
+	decodePeerBody(body)
+}
+
+func decodePeerBody(body []byte) {
+	decoder := bencode.NewDecoder(body)
+	res, err := decoder.Decode(decoder.Buffer, 0)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(res)
+	fmt.Println(string(res["peers"].([]byte)))
+}
+
+func decodePeerList() {
+
 }
