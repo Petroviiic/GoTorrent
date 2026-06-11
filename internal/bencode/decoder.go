@@ -37,6 +37,10 @@ func LoadAndDecode(path string) (*TorrentFile, []byte, error) {
 		return nil, nil, err
 	}
 
+	if _, exists := torrentDataMap["info"]; !exists {
+		return nil, nil, fmt.Errorf("info field doesnt exist")
+	}
+
 	encodedInfoDict, err := Encode(torrentDataMap["info"])
 	if err != nil {
 		return nil, nil, err
@@ -59,10 +63,6 @@ func (d *Decoder) Decode(buffer []byte, index int) (map[any]any, error) {
 			i = newIndex
 			mainMap = res.(map[any]any)
 		}
-	}
-
-	if _, exists := mainMap["info"]; !exists {
-		return nil, fmt.Errorf("info field doesnt exist")
 	}
 
 	return mainMap, nil
