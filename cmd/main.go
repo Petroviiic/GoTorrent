@@ -18,6 +18,7 @@ func main() {
 	path := os.Args[1]
 
 	torrentFile, infoHash, err := bencode.LoadAndDecode(path)
+
 	if err != nil {
 		fmt.Printf("Fatal: error %v", err)
 		os.Exit(1)
