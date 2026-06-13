@@ -26,5 +26,12 @@ func main() {
 
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
 
-	tracker.GetPeers(torrentFile, infoHash, peerID)
+	peers, err := tracker.GetPeers(torrentFile, infoHash, peerID)
+
+	if err != nil {
+		fmt.Printf("Fatal: error %v", err)
+		os.Exit(1)
+	}
+
+	_ = peers
 }
