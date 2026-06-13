@@ -1,17 +1,19 @@
 package tracker
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
 )
 
 type Peer struct {
-	ipAdress string
-	port     string
+	IP   net.IP
+	Port uint16
 }
 
 func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Peer, error) {
@@ -37,8 +39,6 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 	if left == "" {
 		return nil, fmt.Errorf("something went wrong. 'left' is empty")
 	}
-	fmt.Println(left)
-	return nil, nil
 
 	params.Add("info_hash", string(infoHash))
 	params.Add("peer_id", string(peerID))
@@ -57,10 +57,8 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Println(string(body))
 
 	peers, err := decodePeerBody(body)
-
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +69,7 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 func decodePeerBody(body []byte) ([]*Peer, error) {
 	decoder := bencode.NewDecoder(body)
 	res, err := decoder.Decode(decoder.Buffer, 0)
+	fmt.Println(res)
 
 	if err != nil {
 		return nil, err
@@ -80,13 +79,29 @@ func decodePeerBody(body []byte) ([]*Peer, error) {
 		return nil, fmt.Errorf("something went wrong. peers not present in response body")
 	}
 
-	peers := decodePeerList(res["peers"].([]byte))
+	peers := DecodePeerList(res["peers"].([]byte))
 
 	return peers, nil
 }
 
-func decodePeerList(peers []byte) []*Peer {
+func DecodePeerList(peers []byte) []*Peer {
 	res := []*Peer{}
+
+	if len(peers) < 6 {
+		fmt.Println("invalid peers size")
+		return res
+	}
+
+	for i := 0; i+6 <= len(peers); {
+		peer := &Peer{}
+
+		peer.IP = make(net.IP, 4)
+		copy(peer.IP, peers[i:i+4])
+		peer.Port = binary.BigEndian.Uint16(peers[i+4 : i+6])
+
+		res = append(res, peer)
+		i += 6
+	}
 
 	return res
 }
