@@ -16,10 +16,16 @@ type TorrentFile struct {
 }
 
 type InfoDict struct {
-	Length      int    `bencode:"length"`
-	Name        string `bencode:"name"`
-	PieceLength int    `bencode:"piece length"`
-	Pieces      []byte `bencode:"pieces"`
+	Length      int               `bencode:"length"`
+	Name        string            `bencode:"name"`
+	PieceLength int               `bencode:"piece length"`
+	Pieces      []byte            `bencode:"pieces"`
+	Files       []TorrentFileItem `bencode:"files"`
+}
+
+type TorrentFileItem struct {
+	Length int
+	Path   []string
 }
 
 func LoadAndDecode(path string) (*TorrentFile, []byte, error) {
@@ -100,14 +106,30 @@ func ParseTorrentMap(mainMap map[any]any) *TorrentFile {
 		if name, ok := inner["name"]; ok {
 			torrentData.Info.Name = string(name.([]byte))
 		}
-		if length, ok := inner["length"]; ok {
-			torrentData.Info.Length = length.(int)
-		}
 		if pieceLength, ok := inner["piece length"]; ok {
 			torrentData.Info.PieceLength = pieceLength.(int)
 		}
 		if pieces, ok := inner["pieces"]; ok {
 			torrentData.Info.Pieces = pieces.([]byte)
+		}
+
+		if files, ok := inner["files"]; ok {
+			for _, file := range files.([]interface{}) {
+				fileMap := file.(map[any]any)
+
+				torrentFileItem := TorrentFileItem{
+					Length: fileMap["length"].(int),
+				}
+
+				for _, path := range fileMap["path"].([]interface{}) {
+					torrentFileItem.Path = append(torrentFileItem.Path, string(path.([]byte)))
+				}
+				torrentData.Info.Files = append(torrentData.Info.Files, torrentFileItem)
+			}
+		} else {
+			if length, ok := inner["length"]; ok {
+				torrentData.Info.Length = length.(int)
+			}
 		}
 	}
 
