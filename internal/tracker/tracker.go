@@ -69,7 +69,6 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 func decodePeerBody(body []byte) ([]*Peer, error) {
 	decoder := bencode.NewDecoder(body)
 	res, err := decoder.Decode(decoder.Buffer, 0)
-	fmt.Println(res)
 
 	if err != nil {
 		return nil, err
