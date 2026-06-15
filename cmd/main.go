@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
+	"github.com/Petroviiic/GoTorrent/internal/peer"
 	"github.com/Petroviiic/GoTorrent/internal/tracker"
 	"github.com/Petroviiic/GoTorrent/internal/utils"
 )
@@ -23,6 +24,7 @@ func main() {
 		fmt.Printf("Fatal: error %v", err)
 		os.Exit(1)
 	}
+	fmt.Println("torrent file successfully loaded")
 
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
 
@@ -32,6 +34,7 @@ func main() {
 		fmt.Printf("Fatal: error %v", err)
 		os.Exit(1)
 	}
+	fmt.Println("peers successfully retrieved")
 
-	_ = peers
+	peer.ConnectToPeers(peers, infoHash, peerID)
 }
