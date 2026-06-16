@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/Petroviiic/GoTorrent/handshake"
+	"github.com/Petroviiic/GoTorrent/internal/handshake"
 	"github.com/Petroviiic/GoTorrent/internal/tracker"
 )
 
