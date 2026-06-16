@@ -87,6 +87,4 @@ func Hash(data []byte) []byte {
 	hashedData := hash.Sum(nil)
 
 	return hashedData
-	// hashedString := hex.EncodeToString(hashedData)
-	// return hashedString
 }
