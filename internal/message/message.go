@@ -1,28 +1,23 @@
 package message
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+	"io"
+)
 
 type MessageID uint8
 
 const (
-	choke          MessageID = 0
-	unchoke        MessageID = 1
-	interested     MessageID = 2
-	not_interested MessageID = 3
-	have           MessageID = 4
-	bitfield       MessageID = 5
-	request        MessageID = 6
-	piece          MessageID = 7
-	cancel         MessageID = 8
-	// 0 - choke
-	// 1 - unchoke
-	// 2 - interested
-	// 3 - not interested
-	// 4 - have
-	// 5 - bitfield
-	// 6 - request
-	// 7 - piece
-	// 8 - cancel
+	Choke          MessageID = 0
+	Unchoke        MessageID = 1
+	Interested     MessageID = 2
+	Not_interested MessageID = 3
+	Have           MessageID = 4
+	Bitfield       MessageID = 5
+	Request        MessageID = 6
+	Piece          MessageID = 7
+	Cancel         MessageID = 8
 )
 
 type Message struct {
@@ -42,17 +37,31 @@ func (m *Message) Serialize() []byte {
 	return buff
 }
 
-func (m *Message) Deserialize(data []byte) *Message {
-	msg := &Message{}
-	if len(data) < 5 {
-		return msg
+func Deserialize(r io.Reader) (*Message, error) {
+	sizeBuffer := make([]byte, 4)
+
+	_, err := io.ReadFull(r, sizeBuffer)
+	if err != nil {
+		return nil, err
 	}
 
-	msgLen := binary.BigEndian.Uint32(data[:4])
-	msgId := uint8(data[4])
+	msgSize := binary.BigEndian.Uint32(sizeBuffer)
 
-	msg.ID = MessageID(msgId)
-	copy(msg.Payload, data[5:msgLen])
+	if msgSize == 0 {
+		fmt.Println("keep alive message")
+		return &Message{}, nil
+	}
 
-	return msg
+	msgBuffer := make([]byte, msgSize)
+	_, err = io.ReadFull(r, msgBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &Message{
+		ID:      MessageID(msgBuffer[0]),
+		Payload: make([]byte, msgSize-1),
+	}
+	copy(msg.Payload, msgBuffer[1:])
+	return msg, nil
 }
