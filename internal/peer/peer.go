@@ -39,13 +39,15 @@ func (p *PeerClient) handlePeerClient() {
 			continue
 		}
 
+		if msg.ID == message.Bitfield {
+			p.Bitfield = msg.Payload
+		}
 		fmt.Println("success", msg)
 	}
 }
 func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) {
 	ourHandshake := handshake.NewHandshake([]byte("BitTorrent protocol"), infoHash, peerID)
 	ours := ourHandshake.Serialize()
-
 	for _, peerInfo := range peers {
 		address := fmt.Sprintf("%v:%d", peerInfo.IP, peerInfo.Port)
 		conn, err := net.DialTimeout("tcp", address, 3*time.Second)
