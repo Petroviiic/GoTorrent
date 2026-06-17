@@ -12,23 +12,29 @@ import (
 )
 
 type PeerClient struct {
-	Conn       *net.Conn
+	Conn       net.Conn
 	Choked     bool
 	Interested bool
 	Bitfield   []byte
 }
 
-func NewPeerClient(conn *net.Conn, choked, interested bool, bitfield []byte) *PeerClient {
+func NewPeerClient(conn net.Conn) *PeerClient {
 	client := &PeerClient{
 		Conn:       conn,
-		Choked:     choked,
-		Interested: interested,
+		Choked:     true,
+		Interested: false,
+		Bitfield:   nil,
 	}
-	copy(client.Bitfield, bitfield)
-
 	return client
 }
+func (p *PeerClient) handlePeerClient() {
+	defer p.Conn.Close()
 
+	for {
+
+		fmt.Println("success")
+	}
+}
 func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) {
 	ourHandshake := handshake.NewHandshake([]byte("BitTorrent protocol"), infoHash, peerID)
 	ours := ourHandshake.Serialize()
@@ -66,7 +72,10 @@ func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) {
 			log.Println("Handshake not accepted, closing connection:", peerInfo.IP, peerInfo.Port)
 			continue
 		}
-		fmt.Println(conn, "success")
+
+		peerClient := NewPeerClient(conn)
+
+		go peerClient.handlePeerClient()
 	}
 
 }
