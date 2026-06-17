@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Petroviiic/GoTorrent/internal/handshake"
+	"github.com/Petroviiic/GoTorrent/internal/message"
 	"github.com/Petroviiic/GoTorrent/internal/tracker"
 )
 
@@ -31,8 +32,14 @@ func (p *PeerClient) handlePeerClient() {
 	defer p.Conn.Close()
 
 	for {
+		msg, err := message.Deserialize(p.Conn)
 
-		fmt.Println("success")
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		fmt.Println("success", msg)
 	}
 }
 func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) {
