@@ -11,6 +11,24 @@ import (
 	"github.com/Petroviiic/GoTorrent/internal/tracker"
 )
 
+type PeerClient struct {
+	Conn       *net.Conn
+	Choked     bool
+	Interested bool
+	Bitfield   []byte
+}
+
+func NewPeerClient(conn *net.Conn, choked, interested bool, bitfield []byte) *PeerClient {
+	client := &PeerClient{
+		Conn:       conn,
+		Choked:     choked,
+		Interested: interested,
+	}
+	copy(client.Bitfield, bitfield)
+
+	return client
+}
+
 func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) {
 	ourHandshake := handshake.NewHandshake([]byte("BitTorrent protocol"), infoHash, peerID)
 	ours := ourHandshake.Serialize()
