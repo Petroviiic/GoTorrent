@@ -5,9 +5,15 @@ import "encoding/binary"
 type MessageID uint8
 
 const (
-	choke      MessageID = 0
-	unchoke    MessageID = 1
-	interested MessageID = 2
+	choke          MessageID = 0
+	unchoke        MessageID = 1
+	interested     MessageID = 2
+	not_interested MessageID = 3
+	have           MessageID = 4
+	bitfield       MessageID = 5
+	request        MessageID = 6
+	piece          MessageID = 7
+	cancel         MessageID = 8
 	// 0 - choke
 	// 1 - unchoke
 	// 2 - interested
@@ -34,4 +40,19 @@ func (m *Message) Serialize() []byte {
 	copy(buff[5:], m.Payload)
 
 	return buff
+}
+
+func (m *Message) Deserialize(data []byte) *Message {
+	msg := &Message{}
+	if len(data) < 5 {
+		return msg
+	}
+
+	msgLen := binary.BigEndian.Uint32(data[:4])
+	msgId := uint8(data[4])
+
+	msg.ID = MessageID(msgId)
+	copy(msg.Payload, data[5:msgLen])
+
+	return msg
 }
