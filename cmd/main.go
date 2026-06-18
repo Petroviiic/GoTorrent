@@ -36,5 +36,7 @@ func main() {
 	}
 	fmt.Println("peers successfully retrieved")
 
-	peer.ConnectToPeers(peers, infoHash, peerID)
+	clients := peer.ConnectToPeers(peers, infoHash, peerID)
+
+	fmt.Printf("connected to %v clients", len(clients))
 }
