@@ -8,44 +8,13 @@ import (
 	"time"
 
 	"github.com/Petroviiic/GoTorrent/internal/handshake"
-	"github.com/Petroviiic/GoTorrent/internal/message"
+	"github.com/Petroviiic/GoTorrent/internal/network"
 	"github.com/Petroviiic/GoTorrent/internal/tracker"
 )
 
-type PeerClient struct {
-	Conn       net.Conn
-	Choked     bool
-	Interested bool
-	Bitfield   []byte
-}
+func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) []*network.Worker {
+	connectedPeers := []*network.Worker{}
 
-func NewPeerClient(conn net.Conn) *PeerClient {
-	client := &PeerClient{
-		Conn:       conn,
-		Choked:     true,
-		Interested: false,
-		Bitfield:   nil,
-	}
-	return client
-}
-func (p *PeerClient) handlePeerClient() {
-	defer p.Conn.Close()
-
-	for {
-		msg, err := message.Deserialize(p.Conn)
-
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		if msg.ID == message.Bitfield {
-			p.Bitfield = msg.Payload
-		}
-		fmt.Println("success", msg)
-	}
-}
-func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) {
 	ourHandshake := handshake.NewHandshake([]byte("BitTorrent protocol"), infoHash, peerID)
 	ours := ourHandshake.Serialize()
 	for _, peerInfo := range peers {
@@ -82,9 +51,10 @@ func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) {
 			continue
 		}
 
-		peerClient := NewPeerClient(conn)
+		peerClient := network.NewWorker(conn)
 
-		go peerClient.handlePeerClient()
+		connectedPeers = append(connectedPeers, peerClient)
 	}
 
+	return connectedPeers
 }
