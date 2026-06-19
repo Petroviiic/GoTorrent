@@ -1,0 +1,59 @@
+package peer
+
+import (
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"time"
+
+	"github.com/Petroviiic/GoTorrent/internal/handshake"
+	"github.com/Petroviiic/GoTorrent/internal/tracker"
+)
+
+func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) []*PeerClient {
+	connectedPeers := []*PeerClient{}
+
+	ourHandshake := handshake.NewHandshake([]byte("BitTorrent protocol"), infoHash, peerID)
+	ours := ourHandshake.Serialize()
+	for _, peerInfo := range peers {
+		address := fmt.Sprintf("%v:%d", peerInfo.IP, peerInfo.Port)
+		conn, err := net.DialTimeout("tcp", address, 3*time.Second)
+
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		_, err = conn.Write(ours)
+
+		if err != nil {
+			log.Println("Write error:", err)
+			continue
+		}
+
+		buffer := make([]byte, len(ours))
+
+		_, err = io.ReadFull(conn, buffer)
+		if err != nil && err != io.EOF {
+			log.Println("Read error:", err)
+			continue
+		}
+
+		theirs := handshake.Deserialize(buffer)
+		if theirs == nil {
+			fmt.Println("theirs is nil")
+			continue
+		}
+		if !handshake.AcceptHandshake(ourHandshake, theirs) {
+			log.Println("Handshake not accepted, closing connection:", peerInfo.IP, peerInfo.Port)
+			continue
+		}
+
+		peerClient := NewPeerClient(conn)
+
+		connectedPeers = append(connectedPeers, peerClient)
+	}
+
+	return connectedPeers
+}
