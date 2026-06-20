@@ -1,0 +1,23 @@
+package peer
+
+func (p *PeerClient) HasPiece(pieceIndex int) bool {
+	if p.Bitfield == nil {
+		return false
+	}
+
+	//bitfield example: 255 255 255 255 0 = 11111111 11111111 11111111 11111111 00000000
+	byteIndex := pieceIndex / 8
+
+	if byteIndex >= len(p.Bitfield) {
+		return false
+	}
+
+	bit := pieceIndex % 8
+	bitmask := 128 //10000000
+
+	for i := 0; i < bit; i++ {
+		bitmask >>= 1
+	}
+
+	return p.Bitfield[byteIndex]&byte(bitmask) != 0
+}
