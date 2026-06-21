@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"net"
 )
 
 type MessageID uint8
@@ -23,6 +24,15 @@ const (
 type Message struct {
 	ID      MessageID
 	Payload []byte
+}
+
+func NewMessage(id MessageID, payload []byte) *Message {
+	msg := &Message{
+		ID:      id,
+		Payload: make([]byte, len(payload)),
+	}
+	copy(msg.Payload, payload)
+	return msg
 }
 
 // <length prefix><message ID><payload>
@@ -64,4 +74,95 @@ func Deserialize(r io.Reader) (*Message, error) {
 	}
 	copy(msg.Payload, msgBuffer[1:])
 	return msg, nil
+}
+
+func SendChoke(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(9, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendUnchoke(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(1, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendInterested(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(2, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendNot_interested(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(3, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendHave(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(4, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendBitfield(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(5, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendRequest(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(6, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendPiece(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(7, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func SendCancel(conn net.Conn) error {
+	payload := []byte{}
+	msg := NewMessage(8, payload)
+	data := msg.Serialize()
+	_, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
