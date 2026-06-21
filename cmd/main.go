@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
 	"github.com/Petroviiic/GoTorrent/internal/peer"
@@ -34,9 +35,17 @@ func main() {
 		fmt.Printf("Fatal: error %v", err)
 		os.Exit(1)
 	}
-	fmt.Println("peers successfully retrieved")
+	fmt.Printf("%d peers successfully retrieved\n", len(peers))
 
-	clients := peer.ConnectToPeers(peers, infoHash, peerID)
+	workers := peer.ConnectToPeers(peers, infoHash, peerID)
 
-	fmt.Printf("connected to %v clients", len(clients))
+	fmt.Printf("connected to %v clients\n", len(workers))
+
+	var wg sync.WaitGroup
+	for _, worker := range workers {
+		wg.Add(1)
+		go worker.StartWorker(&wg)
+	}
+
+	wg.Wait()
 }
