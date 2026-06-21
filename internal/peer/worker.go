@@ -9,8 +9,12 @@ import (
 )
 
 type PieceOfWork struct {
+	Index int
+	Hash  string
 }
 type PieceOfResult struct {
+	Index int
+	Hash  string
 }
 
 func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
