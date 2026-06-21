@@ -41,6 +41,7 @@ func main() {
 
 	fmt.Printf("connected to %v clients\n", len(workers))
 
+	workChannel := make(chan peer.PieceOfWork, 100)
 	var wg sync.WaitGroup
 	for _, worker := range workers {
 		wg.Add(1)
