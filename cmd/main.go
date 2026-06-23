@@ -25,7 +25,7 @@ func main() {
 		fmt.Printf("Fatal: error %v", err)
 		os.Exit(1)
 	}
-	fmt.Println("torrent file successfully loaded")
+	fmt.Println("torrent file successfully loaded", len(torrentFile.Info.Pieces), len(torrentFile.Info.Files))
 
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
 
@@ -41,7 +41,7 @@ func main() {
 
 	fmt.Printf("connected to %v clients\n", len(workers))
 
-	workChannel := make(chan peer.PieceOfWork, 100)
+	//workChannel := make(chan peer.PieceOfWork, 100)
 	var wg sync.WaitGroup
 	for _, worker := range workers {
 		wg.Add(1)
