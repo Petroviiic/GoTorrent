@@ -136,8 +136,9 @@ func SendBitfield(conn net.Conn) error {
 	}
 	return nil
 }
-func SendRequest(conn net.Conn) error {
+func SendRequest(conn net.Conn, index, begin, length int) error {
 	payload := []byte{}
+	payload = append(payload, byte(index), byte(begin), byte(length))
 	msg := NewMessage(6, payload)
 	data := msg.Serialize()
 	_, err := conn.Write(data)
