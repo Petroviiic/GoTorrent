@@ -78,8 +78,11 @@ func decodePeerBody(body []byte) ([]*Peer, error) {
 		return nil, fmt.Errorf("something went wrong. peers not present in response body")
 	}
 
+	if _, ok := res["peers"].([]byte); !ok {
+		fmt.Println("Failed: The variable is not a string.")
+		return nil, fmt.Errorf("type assertion failed. peers is []interface {}, not []uint8 ")
+	}
 	peers := DecodePeerList(res["peers"].([]byte))
-
 	return peers, nil
 }
 
