@@ -34,6 +34,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			}
 			return
 		}
+		nextPiece := <-p.Manager.workChannel
+		fmt.Println("next piece : ", nextPiece)
 
 		fmt.Println("success", msg)
 		switch msg.ID {
@@ -46,7 +48,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 		case message.Not_interested:
 			p.Interested = false
 		case message.Have:
-			index := binary.BigEndian.Uint32(msg.Payload[1:])
+			// index := binary.BigEndian.Uint32(msg.Payload[1:])
+			index := binary.BigEndian.Uint32(msg.Payload[0:])
 			p.UpdatePiece(int(index))
 		case message.Bitfield:
 			p.Bitfield = msg.Payload
