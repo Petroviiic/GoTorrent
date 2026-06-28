@@ -7,6 +7,7 @@ type PeerClient struct {
 	Interested bool
 	Bitfield   []byte
 	Conn       net.Conn
+	Manager    *Manager
 }
 
 func NewPeerClient(conn net.Conn) *PeerClient {
@@ -15,6 +16,7 @@ func NewPeerClient(conn net.Conn) *PeerClient {
 		Interested: false,
 		Bitfield:   nil,
 		Conn:       conn,
+		Manager:    nil,
 	}
 	return client
 }
