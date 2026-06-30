@@ -9,6 +9,8 @@ import (
 	"github.com/Petroviiic/GoTorrent/internal/message"
 )
 
+const BLOCK_SIZE = 16384
+
 type PieceOfWork struct {
 	Index  int
 	Hash   []byte
@@ -35,7 +37,19 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			return
 		}
 		nextPiece := <-p.Manager.workChannel
+
+		if !p.HasPiece(nextPiece.Index) {
+			p.Manager.workChannel <- nextPiece
+			continue
+		}
+
 		fmt.Println("next piece : ", nextPiece)
+		blocks := make([][]byte, nextPiece.Length/BLOCK_SIZE)
+		for i := 0; i < len(blocks); i++ {
+			if err := message.SendRequest(p.Conn, nextPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
+				fmt.Println(err)
+			}
+		}
 
 		fmt.Println("success", msg)
 		switch msg.ID {
