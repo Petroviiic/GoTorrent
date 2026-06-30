@@ -25,7 +25,7 @@ func main() {
 		fmt.Printf("Fatal: error %v", err)
 		os.Exit(1)
 	}
-	fmt.Println("torrent file successfully loaded", len(torrentFile.Info.Pieces), len(torrentFile.Info.Files))
+	fmt.Println("torrent file successfully loaded", len(torrentFile.Info.Pieces), len(torrentFile.Info.Files), torrentFile.Info.PieceLength)
 
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
 
