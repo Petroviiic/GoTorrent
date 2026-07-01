@@ -27,6 +27,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 		wg.Done()
 	}()
 
+	blocksArrivedCount := 0
+	blocksArrived := []PieceOfWork{}
 	for {
 		msg, err := message.Deserialize(p.Conn)
 
@@ -34,21 +36,10 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			if err != io.EOF {
 				fmt.Println("error deserializing message:", err)
 			}
-			return
-		}
-		nextPiece := <-p.Manager.workChannel
-
-		if !p.HasPiece(nextPiece.Index) {
-			p.Manager.workChannel <- nextPiece
-			continue
-		}
-
-		fmt.Println("next piece : ", nextPiece)
-		blocks := make([][]byte, nextPiece.Length/BLOCK_SIZE)
-		for i := 0; i < len(blocks); i++ {
-			if err := message.SendRequest(p.Conn, nextPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
-				fmt.Println(err)
+			if p.CurrentPiece != nil {
+				p.Manager.workChannel <- *p.CurrentPiece
 			}
+			return
 		}
 
 		fmt.Println("success", msg)
@@ -68,8 +59,18 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 		case message.Bitfield:
 			p.Bitfield = msg.Payload
 		case message.Request:
-
+			blocksArrived = make([]PieceOfWork, p.CurrentPiece.Length)
 		case message.Piece:
+			blocksArrivedCount++
+			if blocksArrivedCount == p.CurrentPiece.Length {
+
+			} else {
+				// pieceOfWork, err := message.RecievePiece()
+				// if err != nil {
+				// 	//uradi nesto
+				// }
+
+			}
 			//dosao piece koji sam requestovao
 		case message.Cancel:
 
@@ -79,5 +80,23 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 
 		//pieceWork := <- workChannel
 
+	}
+}
+
+func (p *PeerClient) getNextAvailablePiece() {
+	nextPiece := <-p.Manager.workChannel
+
+	if !p.HasPiece(nextPiece.Index) {
+		p.Manager.workChannel <- nextPiece
+
+	}
+	p.CurrentPiece = &nextPiece
+
+	fmt.Println("next piece : ", nextPiece)
+	blocks := make([][]byte, nextPiece.Length/BLOCK_SIZE)
+	for i := 0; i < len(blocks); i++ {
+		if err := message.SendRequest(p.Conn, nextPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
+			fmt.Println(err)
+		}
 	}
 }
