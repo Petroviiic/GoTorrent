@@ -43,3 +43,8 @@ func (p *PeerClient) UpdatePiece(pieceIndex int) {
 
 	p.Bitfield[byteIndex] |= byte(bitmask)
 }
+
+func HashOk(downloadedPieces []*PieceOfResult, expected []byte) bool {
+
+	return false
+}
