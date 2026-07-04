@@ -100,6 +100,12 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 				//else
 				//p.Manager.workChannel <- nextPiece
 
+				if HashOk(blocksArrived, currentPiece.Hash) {
+
+				} else {
+					p.Manager.workChannel <- *currentPiece
+				}
+
 				// u svakom slucaju
 				currentPiece = nil
 				blocksArrived = nil
@@ -125,15 +131,24 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 }
 
 func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
-	nextPiece := <-p.Manager.workChannel
+	for {
+		select {
+		case piece, ok := <-p.Manager.workChannel:
+			if !ok {
+				return nil
+			}
 
-	if !p.HasPiece(nextPiece.Index) {
-		p.Manager.workChannel <- nextPiece
+			if p.HasPiece(piece.Index) {
+				fmt.Println("next piece : ", piece)
+				return &piece
+			}
+
+			p.Manager.workChannel <- piece
+		default:
+			return nil
+		}
 
 	}
-	fmt.Println("next piece : ", nextPiece)
-
-	return &nextPiece
 }
 func (p *PeerClient) sendRequests(currentPiece *PieceOfWork) {
 	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
