@@ -77,10 +77,6 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 		case message.Piece:
 			//dosao piece koji sam requestovao
 
-			// pieceOfWork, err := message.RecievePiece()
-			// if err != nil {
-			// 	//uradi nesto
-			// }
 			if currentPiece == nil {
 				continue
 			}
@@ -92,15 +88,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			}
 
 			if blocksArrivedCount == currentPiece.Length {
-				//cekiraj hash
-
-				//if hash==dobar then
-				//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
-
-				//else
-				//p.Manager.workChannel <- nextPiece
-
 				if HashOk(blocksArrived, currentPiece.Hash) {
+					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
 
 				} else {
 					p.Manager.workChannel <- *currentPiece
@@ -152,6 +141,7 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 }
 func (p *PeerClient) sendRequests(currentPiece *PieceOfWork) {
 	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
+	fmt.Printf("sending requests for %v", currentPiece)
 	for i := 0; i < len(blocks); i++ {
 		if err := message.SendRequest(p.Conn, currentPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
 			fmt.Println(err)
