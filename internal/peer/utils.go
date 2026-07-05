@@ -1,5 +1,7 @@
 package peer
 
+import "fmt"
+
 func (p *PeerClient) HasPiece(pieceIndex int) bool {
 	if p.Bitfield == nil {
 		return false
@@ -45,6 +47,11 @@ func (p *PeerClient) UpdatePiece(pieceIndex int) {
 }
 
 func HashOk(downloadedPieces []*PieceOfResult, expected []byte) bool {
+	//gotHash := []byte{}
+	fmt.Println("evo me", downloadedPieces, expected)
+	for _, piece := range downloadedPieces {
+		fmt.Println(len(piece.Downloaded))
+	}
 
 	return false
 }
