@@ -26,6 +26,7 @@ func (p *PeerClient) HasPiece(pieceIndex int) bool {
 
 func (p *PeerClient) UpdatePiece(pieceIndex int) {
 	if p.Bitfield == nil {
+		fmt.Println("bitfield uninitialized")
 		return
 	}
 
