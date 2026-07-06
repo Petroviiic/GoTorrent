@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -43,6 +44,15 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			return
 		}
 
+		if currentPiece == nil && !p.Choked && bytes.Equal(p.Bitfield, []byte{0}) {
+			currentPiece = p.getNextAvailablePiece()
+			if currentPiece != nil {
+				blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
+				blocksArrivedCount = 0
+				p.sendRequests(currentPiece)
+			}
+		}
+
 		fmt.Println("success", msg)
 		switch msg.ID {
 		case message.Choke:
@@ -55,14 +65,6 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			}
 		case message.Unchoke:
 			p.Choked = false
-
-			currentPiece = p.getNextAvailablePiece()
-			if currentPiece != nil {
-				blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
-				blocksArrivedCount = 0
-				p.sendRequests(currentPiece)
-			}
-
 		case message.Interested:
 			p.Interested = true
 		case message.Not_interested:
@@ -120,6 +122,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 }
 
 func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
+	fmt.Println("finding next available piece")
 	for {
 		select {
 		case piece, ok := <-p.Manager.workChannel:
@@ -130,6 +133,8 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 			if p.HasPiece(piece.Index) {
 				fmt.Println("next piece : ", piece)
 				return &piece
+			} else {
+				fmt.Println("peer doesnt have piece %d", piece.Index)
 			}
 
 			p.Manager.workChannel <- piece
@@ -147,4 +152,5 @@ func (p *PeerClient) sendRequests(currentPiece *PieceOfWork) {
 			fmt.Println(err)
 		}
 	}
+	fmt.Printf("requests sent for %v", currentPiece)
 }
