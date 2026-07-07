@@ -2,6 +2,7 @@ package peer
 
 type Manager struct {
 	workChannel chan PieceOfWork
+	storage     map[int][]byte
 }
 
 // TODO : dodaj rarest first. ovaj trenutni approach je dobar ako zelim preview tipa film neki pa pieces moraju jedan za drugim da dolaze
@@ -28,4 +29,8 @@ func NewManager(pieces []byte, pieceSize int) *Manager {
 		i += 20
 	}
 	return manager
+}
+
+func (m *Manager) AddNewEntry(index int, hash []byte) {
+	m.storage[index] = hash
 }
