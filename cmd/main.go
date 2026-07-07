@@ -41,6 +41,7 @@ func main() {
 
 	fmt.Printf("connected to %v clients\n", len(workers))
 	//workChannel := make(chan peer.PieceOfWork, 100)
+
 	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength)
 	var wg sync.WaitGroup
 	for _, worker := range workers {
