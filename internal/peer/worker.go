@@ -90,9 +90,9 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			}
 
 			if blocksArrivedCount == currentPiece.Length {
-				if HashOk(blocksArrived, currentPiece.Hash) {
+				if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
-
+					p.Manager.AddNewEntry(currentPiece.Index, fullHash)
 				} else {
 					p.Manager.workChannel <- *currentPiece
 				}
