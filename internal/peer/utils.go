@@ -47,12 +47,12 @@ func (p *PeerClient) UpdatePiece(pieceIndex int) {
 	p.Bitfield[byteIndex] |= byte(bitmask)
 }
 
-func HashOk(downloadedPieces []*PieceOfResult, expected []byte) bool {
+func HashOk(downloadedPieces []*PieceOfResult, expected []byte) ([]byte, bool) {
 	//gotHash := []byte{}
 	fmt.Println("evo me", downloadedPieces, expected)
 	for _, piece := range downloadedPieces {
 		fmt.Println(len(piece.Downloaded))
 	}
 
-	return false
+	return nil, false
 }
