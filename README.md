@@ -1,4 +1,4 @@
-## GoTorrent
+# GoTorrent
 
 A lightweight, concurrent BitTorrent client built from scratch in Go. 
 
