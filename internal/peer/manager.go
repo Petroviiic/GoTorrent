@@ -2,6 +2,7 @@ package peer
 
 type Manager struct {
 	workChannel chan PieceOfWork
+	TotalPieces int
 	storage     map[int][]byte
 }
 
@@ -9,6 +10,8 @@ type Manager struct {
 func NewManager(pieces []byte, pieceSize int) *Manager {
 	manager := &Manager{
 		workChannel: make(chan PieceOfWork, len(pieces)/20),
+		storage:     make(map[int][]byte),
+		TotalPieces: len(pieces) / 20,
 	}
 	for i, j := 0, 0; i < len(pieces); j++ {
 		endIndex := i + 20
