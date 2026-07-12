@@ -4,8 +4,7 @@ import "fmt"
 
 func (p *PeerClient) HasPiece(pieceIndex int) bool {
 	if p.Bitfield == nil {
-		totalPieces := p.Manager.TotalPieces
-		p.Bitfield = make([]byte, (totalPieces+7)/8)
+		return false
 	}
 
 	//bitfield example: 255 255 255 255 0 = 11111111 11111111 11111111 11111111 00000000
@@ -27,8 +26,8 @@ func (p *PeerClient) HasPiece(pieceIndex int) bool {
 
 func (p *PeerClient) UpdatePiece(pieceIndex int) {
 	if p.Bitfield == nil {
-		fmt.Println("bitfield uninitialized")
-		return
+		totalPieces := p.Manager.TotalPieces
+		p.Bitfield = make([]byte, (totalPieces+7)/8)
 	}
 
 	//bitfield example: 255 255 255 255 0 = 11111111 11111111 11111111 11111111 00000000
