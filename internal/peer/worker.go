@@ -44,7 +44,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			return
 		}
 
-		if currentPiece == nil && !p.Choked && bytes.Equal(p.Bitfield, []byte{0}) {
+		fmt.Println(currentPiece == nil, !p.Choked, bytes.Equal(p.Bitfield, []byte{0}))
+		if currentPiece == nil && !p.Choked && !bytes.Equal(p.Bitfield, []byte{0}) {
 			currentPiece = p.getNextAvailablePiece()
 			if currentPiece != nil {
 				blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
@@ -133,10 +134,7 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 			if p.HasPiece(piece.Index) {
 				fmt.Println("next piece : ", piece)
 				return &piece
-			} else {
-				fmt.Println("peer doesnt have piece %d", piece.Index)
 			}
-
 			p.Manager.workChannel <- piece
 		default:
 			return nil
