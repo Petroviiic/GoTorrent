@@ -8,10 +8,11 @@ type Manager struct {
 
 // TODO : dodaj rarest first. ovaj trenutni approach je dobar ako zelim preview tipa film neki pa pieces moraju jedan za drugim da dolaze
 func NewManager(pieces []byte, pieceSize int) *Manager {
+	totalPieces := len(pieces) / 20
 	manager := &Manager{
-		workChannel: make(chan PieceOfWork, len(pieces)/20),
+		workChannel: make(chan PieceOfWork, totalPieces),
 		storage:     make(map[int][]byte),
-		TotalPieces: len(pieces) / 20,
+		TotalPieces: totalPieces,
 	}
 	for i, j := 0, 0; i < len(pieces); j++ {
 		endIndex := i + 20
