@@ -44,8 +44,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			return
 		}
 
-		fmt.Println(currentPiece == nil, !p.Choked, bytes.Equal(p.Bitfield, []byte{0}))
-		if currentPiece == nil && !p.Choked && !bytes.Equal(p.Bitfield, []byte{0}) {
+		fmt.Println(currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
+		if currentPiece == nil && !p.Choked && p.Bitfield != nil && !bytes.Equal(p.Bitfield, []byte{0}) {
 			currentPiece = p.getNextAvailablePiece()
 			if currentPiece != nil {
 				blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
@@ -80,16 +80,16 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 		case message.Piece:
 			//dosao piece koji sam requestovao
 
-			if currentPiece == nil {
+			if currentPiece == nil || blocksArrived == nil {
 				continue
 			}
 			pieceOfResult := &PieceOfResult{}
 
-			if blocksArrivedCount < currentPiece.Length {
+			if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
 				blocksArrived[pieceOfResult.Index] = pieceOfResult
 				blocksArrivedCount++
 			}
-
+			fmt.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE)
 			if blocksArrivedCount == currentPiece.Length {
 				if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
@@ -124,6 +124,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 
 func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 	fmt.Println("finding next available piece")
+
 	for {
 		select {
 		case piece, ok := <-p.Manager.workChannel:
@@ -135,6 +136,7 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 				fmt.Println("next piece : ", piece)
 				return &piece
 			}
+
 			p.Manager.workChannel <- piece
 		default:
 			return nil
@@ -144,11 +146,19 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 }
 func (p *PeerClient) sendRequests(currentPiece *PieceOfWork) {
 	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
-	fmt.Printf("sending requests for %v", currentPiece)
-	for i := 0; i < len(blocks); i++ {
+	fmt.Printf("sending requests for %v\n", currentPiece)
+
+	initialRequests := len(blocks)
+	initialRequests = 5
+	// initialRequests := 5				//ovo dodaj da salje 5 po 5 npr ako bude blokirao... a blokira. ugl dodaj mzd kao parametre funkcije pocetni i krajnji indeks koji se trebaju poslati
+	// if len(blocks) < initialRequests {
+	// 	initialRequests = len(blocks)
+	// }
+	for i := 0; i < initialRequests; i++ {
 		if err := message.SendRequest(p.Conn, currentPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
 			fmt.Println(err)
 		}
 	}
-	fmt.Printf("requests sent for %v", currentPiece)
+
+	fmt.Printf("requests sent for %v\n", currentPiece)
 }
