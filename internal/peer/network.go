@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Petroviiic/GoTorrent/internal/handshake"
+	"github.com/Petroviiic/GoTorrent/internal/message"
 	"github.com/Petroviiic/GoTorrent/internal/tracker"
 )
 
@@ -49,7 +50,10 @@ func ConnectToPeers(peers []*tracker.Peer, infoHash []byte, peerID []byte) []*Pe
 			log.Println("Handshake not accepted, closing connection:", peerInfo.IP, peerInfo.Port)
 			continue
 		}
-
+		if err := message.SendInterested(conn); err != nil {
+			fmt.Println("send interested message failed")
+			continue
+		}
 		peerClient := NewPeerClient(conn)
 
 		connectedPeers = append(connectedPeers, peerClient)
