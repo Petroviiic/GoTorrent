@@ -38,7 +38,7 @@ func NewMessage(id MessageID, payload []byte) *Message {
 // <length prefix><message ID><payload>
 func (m *Message) Serialize() []byte {
 	size := len(m.Payload) + 1
-	buff := make([]byte, size)
+	buff := make([]byte, size+4) //size + 4 bytes for "size" itself
 
 	binary.BigEndian.PutUint32(buff[:4], uint32(size))
 	buff[4] = byte(m.ID)
@@ -137,8 +137,12 @@ func SendBitfield(conn net.Conn) error {
 	return nil
 }
 func SendRequest(conn net.Conn, index, begin, length int) error {
-	payload := []byte{}
-	payload = append(payload, byte(index), byte(begin), byte(length))
+	payload := make([]byte, 12)
+
+	binary.BigEndian.PutUint32(payload[0:4], uint32(index))
+	binary.BigEndian.PutUint32(payload[4:8], uint32(begin))
+	binary.BigEndian.PutUint32(payload[8:12], uint32(length))
+
 	msg := NewMessage(6, payload)
 	data := msg.Serialize()
 	_, err := conn.Write(data)
