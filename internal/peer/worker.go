@@ -57,7 +57,12 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			}
 		}
 
-		fmt.Println("success", msg)
+		fmt.Printf("success ")
+		if msg.ID != message.Piece {
+			fmt.Println(msg)
+		} else {
+			fmt.Println("new piece")
+		}
 		switch msg.ID {
 		case message.Choke:
 			p.Choked = true
