@@ -29,6 +29,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 		wg.Done()
 	}()
 
+	startBlockIndex := 0
 	blocksArrivedCount := 0
 	blocksArrived := []*PieceOfResult{}
 	var currentPiece *PieceOfWork
@@ -51,7 +52,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			if currentPiece != nil {
 				blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
 				blocksArrivedCount = 0
-				p.sendRequests(currentPiece)
+				startBlockIndex = 0
+				p.sendRequests(currentPiece, startBlockIndex)
 			}
 		}
 
@@ -63,6 +65,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			if currentPiece != nil {
 				p.Manager.workChannel <- *currentPiece
 				blocksArrivedCount = 0
+				startBlockIndex = 0
 				blocksArrived = nil
 			}
 		case message.Unchoke:
@@ -90,6 +93,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 				blocksArrived[pieceOfResult.Index] = pieceOfResult
 				blocksArrivedCount++
 			}
+			startBlockIndex += BLOCKS_SENT_PER_REQUEST
 			fmt.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE)
 			if blocksArrivedCount == currentPiece.Length {
 				if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
@@ -108,7 +112,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 					if currentPiece != nil {
 						blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
 						blocksArrivedCount = 0
-						p.sendRequests(currentPiece)
+						startBlockIndex = 0
+						p.sendRequests(currentPiece, startBlockIndex)
 					}
 				}
 			}
@@ -145,15 +150,15 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 
 	}
 }
-func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex, endBlockIndex int) {
+func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int) {
 	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
 	fmt.Printf("sending requests for %v\n", currentPiece)
 
-	initialRequests := 5 //ovo dodaj da salje 5 po 5 npr ako bude blokirao... a blokira. ugl dodaj mzd kao parametre funkcije pocetni i krajnji indeks koji se trebaju poslati
-	if len(blocks) < initialRequests {
-		initialRequests = len(blocks)
+	endBlockIndex := startBlockIndex + BLOCKS_SENT_PER_REQUEST //ovo dodaj da salje 5 po 5 npr ako bude blokirao... a blokira. ugl dodaj mzd kao parametre funkcije pocetni i krajnji indeks koji se trebaju poslati
+	if len(blocks) < endBlockIndex {
+		endBlockIndex = len(blocks)
 	}
-	for i := startBlockIndex; i < endBlockIndex+initialRequests; i++ {
+	for i := startBlockIndex; i < endBlockIndex; i++ {
 		if err := message.SendRequest(p.Conn, currentPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
 			fmt.Println(err)
 		}
