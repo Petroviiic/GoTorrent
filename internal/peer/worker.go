@@ -11,6 +11,7 @@ import (
 )
 
 const BLOCK_SIZE = 16384
+const BLOCKS_SENT_PER_REQUEST = 5
 
 type PieceOfWork struct {
 	Index  int
@@ -144,17 +145,15 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 
 	}
 }
-func (p *PeerClient) sendRequests(currentPiece *PieceOfWork) {
+func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex, endBlockIndex int) {
 	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
 	fmt.Printf("sending requests for %v\n", currentPiece)
 
-	initialRequests := len(blocks)
-	initialRequests = 5
-	// initialRequests := 5				//ovo dodaj da salje 5 po 5 npr ako bude blokirao... a blokira. ugl dodaj mzd kao parametre funkcije pocetni i krajnji indeks koji se trebaju poslati
-	// if len(blocks) < initialRequests {
-	// 	initialRequests = len(blocks)
-	// }
-	for i := 0; i < initialRequests; i++ {
+	initialRequests := 5 //ovo dodaj da salje 5 po 5 npr ako bude blokirao... a blokira. ugl dodaj mzd kao parametre funkcije pocetni i krajnji indeks koji se trebaju poslati
+	if len(blocks) < initialRequests {
+		initialRequests = len(blocks)
+	}
+	for i := startBlockIndex; i < endBlockIndex+initialRequests; i++ {
 		if err := message.SendRequest(p.Conn, currentPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
 			fmt.Println(err)
 		}
