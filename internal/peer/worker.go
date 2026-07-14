@@ -97,9 +97,13 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
 				blocksArrived[pieceOfResult.Index] = pieceOfResult
 				blocksArrivedCount++
+
+				if blocksArrivedCount%BLOCKS_SENT_PER_REQUEST == 0 {
+					startBlockIndex += BLOCKS_SENT_PER_REQUEST
+					p.sendRequests(currentPiece, startBlockIndex)
+				}
 			}
-			startBlockIndex += BLOCKS_SENT_PER_REQUEST
-			fmt.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE)
+			fmt.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE, startBlockIndex)
 			if blocksArrivedCount == currentPiece.Length {
 				if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
