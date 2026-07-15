@@ -145,6 +145,7 @@ func SendRequest(conn net.Conn, index, begin, length int) error {
 
 	msg := NewMessage(6, payload)
 	data := msg.Serialize()
+
 	_, err := conn.Write(data)
 	if err != nil {
 		return err
