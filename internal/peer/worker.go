@@ -92,11 +92,13 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			if currentPiece == nil || blocksArrived == nil {
 				continue
 			}
-			pieceOfResult := &PieceOfResult{}
+			pieceOfResult := DecodePiece(msg.Payload)
+			fmt.Println(pieceOfResult.Index, pieceOfResult.Index%(currentPiece.Length/BLOCK_SIZE))
 
 			if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
-				blocksArrived[pieceOfResult.Index] = pieceOfResult
+				blocksArrived[pieceOfResult.Index%(currentPiece.Length/BLOCK_SIZE)] = pieceOfResult
 				blocksArrivedCount++
+				fmt.Println("blocks arrived ", blocksArrived)
 
 				if blocksArrivedCount%BLOCKS_SENT_PER_REQUEST == 0 {
 					startBlockIndex += BLOCKS_SENT_PER_REQUEST
@@ -104,7 +106,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 				}
 			}
 			fmt.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE, startBlockIndex)
-			if blocksArrivedCount == currentPiece.Length {
+			if blocksArrivedCount == currentPiece.Length/BLOCK_SIZE {
 				if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
 					p.Manager.AddNewEntry(currentPiece.Index, fullHash)
