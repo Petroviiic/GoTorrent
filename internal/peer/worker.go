@@ -19,8 +19,9 @@ type PieceOfWork struct {
 	Length int
 }
 type PieceOfResult struct {
-	Index      int
-	Downloaded []byte
+	PieceIndex  int
+	BlockOffset int
+	Downloaded  []byte
 }
 
 func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
@@ -93,10 +94,10 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 				continue
 			}
 			pieceOfResult := DecodePiece(msg.Payload)
-			fmt.Println(pieceOfResult.Index, pieceOfResult.Index%(currentPiece.Length/BLOCK_SIZE))
+			fmt.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
 
 			if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
-				blocksArrived[pieceOfResult.Index%(currentPiece.Length/BLOCK_SIZE)] = pieceOfResult
+				blocksArrived[pieceOfResult.BlockOffset/BLOCK_SIZE] = pieceOfResult
 				blocksArrivedCount++
 				fmt.Println("blocks arrived ", blocksArrived)
 
@@ -114,6 +115,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 					p.Manager.workChannel <- *currentPiece
 				}
 
+				return
 				// u svakom slucaju
 				currentPiece = nil
 				blocksArrived = nil
