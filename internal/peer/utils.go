@@ -1,6 +1,9 @@
 package peer
 
-import "fmt"
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 func (p *PeerClient) HasPiece(pieceIndex int) bool {
 	if p.Bitfield == nil {
@@ -55,4 +58,17 @@ func HashOk(downloadedPieces []*PieceOfResult, expected []byte) ([]byte, bool) {
 	}
 
 	return nil, false
+}
+
+func DecodePiece(data []byte) *PieceOfResult {
+	index := binary.BigEndian.Uint32(data[0:4])
+	begin := binary.BigEndian.Uint32(data[4:8])
+	//length := binary.BigEndian.Uint32(data[8:12])	//not sure bout this one
+
+	fmt.Println(index, begin, len(data[8:]))
+	return &PieceOfResult{
+		PieceIndex:  int(index),
+		BlockOffset: int(begin),
+		Downloaded:  data[8:],
+	}
 }
