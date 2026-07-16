@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
-	"fmt"
 )
 
 func (p *PeerClient) HasPiece(pieceIndex int) bool {
 	if p.Bitfield == nil {
 		return false
 	}
-
 	//bitfield example: 255 255 255 255 0 = 11111111 11111111 11111111 11111111 00000000
 	byteIndex := pieceIndex / 8
 
@@ -22,9 +20,7 @@ func (p *PeerClient) HasPiece(pieceIndex int) bool {
 	bit := pieceIndex % 8
 	bitmask := 128 //10000000
 
-	for i := 0; i < bit; i++ {
-		bitmask >>= 1
-	}
+	bitmask >>= bit
 
 	return p.Bitfield[byteIndex]&byte(bitmask) != 0
 }
@@ -71,7 +67,7 @@ func DecodePiece(data []byte) *PieceOfResult {
 	begin := binary.BigEndian.Uint32(data[4:8])
 	//length := binary.BigEndian.Uint32(data[8:12])	//not sure bout this one
 
-	fmt.Println(index, begin, len(data[8:]))
+	//fmt.Println(index, begin, len(data[8:]))
 	return &PieceOfResult{
 		PieceIndex:  int(index),
 		BlockOffset: int(begin),
