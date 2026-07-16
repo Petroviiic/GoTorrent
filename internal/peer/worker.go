@@ -94,12 +94,12 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 				continue
 			}
 			pieceOfResult := DecodePiece(msg.Payload)
-			fmt.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
+			//fmt.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
 
 			if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
 				blocksArrived[pieceOfResult.BlockOffset/BLOCK_SIZE] = pieceOfResult
 				blocksArrivedCount++
-				fmt.Println("blocks arrived ", blocksArrived)
+				//fmt.Println("blocks arrived ", blocksArrived)
 
 				if blocksArrivedCount%BLOCKS_SENT_PER_REQUEST == 0 {
 					startBlockIndex += BLOCKS_SENT_PER_REQUEST
@@ -112,10 +112,10 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
 					p.Manager.AddNewEntry(currentPiece.Index, fullHash)
 				} else {
+					fmt.Println("wrong hash for piece ", currentPiece.Index)
 					p.Manager.workChannel <- *currentPiece
 				}
 
-				return
 				// u svakom slucaju
 				currentPiece = nil
 				blocksArrived = nil
