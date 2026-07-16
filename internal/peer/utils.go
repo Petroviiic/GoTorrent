@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
@@ -52,13 +53,16 @@ func (p *PeerClient) UpdatePiece(pieceIndex int) {
 }
 
 func HashOk(downloadedPieces []*PieceOfResult, expected []byte) ([]byte, bool) {
-	gotHash := []byte{}
-	fmt.Println("evo me", downloadedPieces, expected)
+	gotData := []byte{}
 	for _, piece := range downloadedPieces {
-		fmt.Println(len(piece.Downloaded))
-		gotHash = append(gotHash, piece.Downloaded...)
+		gotData = append(gotData, piece.Downloaded...)
 	}
-	fmt.Println(sha1.Sum(gotHash))
+
+	sum := sha1.Sum(gotData)
+	if bytes.Equal(sum[:], expected) {
+		return gotData, true
+	}
+
 	return nil, false
 }
 
