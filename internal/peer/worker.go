@@ -143,7 +143,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 
 func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 	fmt.Println("finding next available piece")
-
+	fmt.Printf("peer bitfield: %v, length of workchannel %v\n", p.Bitfield, len(p.Manager.workChannel))
 	for {
 		select {
 		case piece, ok := <-p.Manager.workChannel:
