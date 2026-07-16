@@ -1,5 +1,7 @@
 package peer
 
+import "fmt"
+
 type Manager struct {
 	workChannel chan PieceOfWork
 	TotalPieces int
@@ -37,4 +39,6 @@ func NewManager(pieces []byte, pieceSize int) *Manager {
 
 func (m *Manager) AddNewEntry(index int, hash []byte) {
 	m.storage[index] = hash
+
+	fmt.Println("storage ", len(m.storage))
 }
