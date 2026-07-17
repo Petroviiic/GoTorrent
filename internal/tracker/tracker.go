@@ -34,6 +34,8 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		return nil, fmt.Errorf("something went wrong. 'left' is empty")
 	}
 
+	// return sendRequest(torrentData.Announce, infoHash, peerID, left)     // this works like the original first version of my code, checks only the official tracker
+
 	trackerURLs := []string{}
 	if strings.HasPrefix(torrentData.Announce, "http") {
 		trackerURLs = append(trackerURLs, torrentData.Announce)
