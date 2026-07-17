@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
 )
@@ -17,13 +18,6 @@ type Peer struct {
 }
 
 func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Peer, error) {
-	req, err := http.NewRequest("GET", torrentData.Announce, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	params := req.URL.Query()
-
 	left := ""
 	if len(torrentData.Info.Files) == 0 {
 		left = fmt.Sprintf("%d", torrentData.Info.Length)
@@ -40,6 +34,44 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		return nil, fmt.Errorf("something went wrong. 'left' is empty")
 	}
 
+	trackerURLs := []string{}
+	if strings.HasPrefix(torrentData.Announce, "http") {
+		trackerURLs = append(trackerURLs, torrentData.Announce)
+	}
+	for _, tier := range torrentData.AnnounceList {
+		for _, link := range tier {
+			if strings.HasPrefix(link, "http") {
+				trackerURLs = append(trackerURLs, link)
+			}
+		}
+	}
+	uniquePeers := make(map[*Peer]bool)
+	for _, trackerURL := range trackerURLs {
+		newPeers, err := sendRequest(trackerURL, infoHash, peerID, left)
+
+		if err != nil {
+			continue
+		}
+
+		for _, val := range newPeers {
+			uniquePeers[val] = true
+		}
+	}
+
+	peers := []*Peer{}
+	for p := range uniquePeers {
+		peers = append(peers, p)
+	}
+	return peers, nil
+}
+
+func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Peer, error) {
+	req, err := http.NewRequest("GET", trackerURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	params := req.URL.Query()
 	params.Add("info_hash", string(infoHash))
 	params.Add("peer_id", string(peerID))
 	params.Add("port", "6881")
@@ -49,7 +81,6 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 	params.Add("compact", "1")
 
 	req.URL.RawQuery = params.Encode()
-
 	resp, err := http.Get(req.URL.String())
 	if err != nil {
 		log.Fatalf("Request failed: %v", err)
@@ -62,7 +93,6 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 	if err != nil {
 		return nil, err
 	}
-
 	return peers, nil
 }
 
@@ -73,7 +103,6 @@ func decodePeerBody(body []byte) ([]*Peer, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if _, ok := res["peers"]; !ok {
 		return nil, fmt.Errorf("something went wrong. peers not present in response body")
 	}
