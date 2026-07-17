@@ -3,8 +3,8 @@ package peer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/Petroviiic/GoTorrent/internal/message"
@@ -39,7 +39,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 
 		if err != nil {
 			if err != io.EOF {
-				fmt.Println("error deserializing message:", err)
+				log.Printf("peer %v error deserializing message: %v\n", p.Id, err)
 			}
 			if currentPiece != nil {
 				p.Manager.workChannel <- *currentPiece
@@ -47,7 +47,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			return
 		}
 
-		fmt.Println(currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
+		log.Printf("peer %v %v %v %v %v\n", p.Id, currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
 		if currentPiece == nil && !p.Choked && p.Bitfield != nil && !bytes.Equal(p.Bitfield, []byte{0}) {
 			currentPiece = p.getNextAvailablePiece()
 			if currentPiece != nil {
@@ -58,11 +58,10 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			}
 		}
 
-		fmt.Printf("success ")
 		if msg.ID != message.Piece {
-			fmt.Println(msg)
+			log.Printf("peer %v success %v\n", p.Id, msg)
 		} else {
-			fmt.Println("new piece")
+			log.Printf("peer %v success new piece\n", p.Id)
 		}
 		switch msg.ID {
 		case message.Choke:
@@ -91,28 +90,29 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			//dosao piece koji sam requestovao
 
 			if currentPiece == nil || blocksArrived == nil {
+				log.Printf("peer %v piece received but skipping it because : %v %v\n", p.Id, currentPiece == nil, blocksArrived == nil)
 				continue
 			}
 			pieceOfResult := DecodePiece(msg.Payload)
-			//fmt.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
+			//log.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
 
 			if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
 				blocksArrived[pieceOfResult.BlockOffset/BLOCK_SIZE] = pieceOfResult
 				blocksArrivedCount++
-				//fmt.Println("blocks arrived ", blocksArrived)
+				//log.Println("blocks arrived ", blocksArrived)
 
 				if blocksArrivedCount%BLOCKS_SENT_PER_REQUEST == 0 {
 					startBlockIndex += BLOCKS_SENT_PER_REQUEST
 					p.sendRequests(currentPiece, startBlockIndex)
 				}
 			}
-			fmt.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE, startBlockIndex)
+			log.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE, startBlockIndex)
 			if blocksArrivedCount == currentPiece.Length/BLOCK_SIZE {
 				if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
 					p.Manager.AddNewEntry(currentPiece.Index, fullHash)
 				} else {
-					fmt.Println("wrong hash for piece ", currentPiece.Index)
+					log.Printf("peer %v wrong hash for piece %v\n", p.Id, currentPiece.Index)
 					p.Manager.workChannel <- *currentPiece
 				}
 
@@ -133,7 +133,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 		case message.Cancel:
 
 		default:
-			fmt.Println("unknown message type")
+			log.Printf("peer %v unknown message type\n", p.Id)
 		}
 
 		//pieceWork := <- workChannel
@@ -142,9 +142,14 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 }
 
 func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
-	fmt.Println("finding next available piece")
-	fmt.Printf("peer bitfield: %v, length of workchannel %v\n", p.Bitfield, len(p.Manager.workChannel))
+	log.Printf("peer %v finding next available piece\n", p.Id)
+	log.Printf("peer %d bitfield: %v, length of workchannel %v\n", p.Id, p.Bitfield, len(p.Manager.workChannel))
+	i := 0
 	for {
+		if i >= p.Manager.TotalPieces {
+			log.Printf("peer %v couldnt find any available pieces\n", p.Id)
+			return nil
+		}
 		select {
 		case piece, ok := <-p.Manager.workChannel:
 			if !ok {
@@ -152,10 +157,11 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 			}
 
 			if p.HasPiece(piece.Index) {
-				fmt.Println("next piece : ", piece)
+				log.Printf("peer %v next piece : %v\n", p.Id, piece)
 				return &piece
 			}
 
+			i++
 			p.Manager.workChannel <- piece
 		default:
 			return nil
@@ -165,7 +171,7 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 }
 func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int) {
 	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
-	fmt.Printf("sending requests for %v\n", currentPiece)
+	log.Printf("peer %d sending requests for %v\n", p.Id, currentPiece)
 
 	endBlockIndex := startBlockIndex + BLOCKS_SENT_PER_REQUEST //ovo dodaj da salje 5 po 5 npr ako bude blokirao... a blokira. ugl dodaj mzd kao parametre funkcije pocetni i krajnji indeks koji se trebaju poslati
 	if len(blocks) < endBlockIndex {
@@ -173,9 +179,9 @@ func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int
 	}
 	for i := startBlockIndex; i < endBlockIndex; i++ {
 		if err := message.SendRequest(p.Conn, currentPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 	}
 
-	fmt.Printf("requests sent for %v\n", currentPiece)
+	log.Printf("peer %d requests sent for %v\n", p.Id, currentPiece)
 }
