@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
 )
@@ -18,12 +17,12 @@ type Peer struct {
 }
 
 func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Peer, error) {
-	// req, err := http.NewRequest("GET", torrentData.Announce, nil)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	req, err := http.NewRequest("GET", torrentData.Announce, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	// params := req.URL.Query()
+	params := req.URL.Query()
 
 	left := ""
 	if len(torrentData.Info.Files) == 0 {
@@ -41,33 +40,17 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		return nil, fmt.Errorf("something went wrong. 'left' is empty")
 	}
 
-	// params.Add("info_hash", string(infoHash))
-	// params.Add("peer_id", string(peerID))
-	// params.Add("port", "6881")
-	// params.Add("uploaded", "0")
-	// params.Add("downloaded", "0")
-	// params.Add("left", left)
-	// params.Add("compact", "1")
+	params.Add("info_hash", string(infoHash))
+	params.Add("peer_id", string(peerID))
+	params.Add("port", "6881")
+	params.Add("uploaded", "0")
+	params.Add("downloaded", "0")
+	params.Add("left", left)
+	params.Add("compact", "1")
 
-	// req.URL.RawQuery = params.Encode()
+	req.URL.RawQuery = params.Encode()
 
-	// resp, err := http.Get(req.URL.String())
-	// u, err := url.Parse(torrentData.Announce)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	infoHashEscaped := urlEncodeBytes(infoHash)
-	peerIDEscaped := urlEncodeBytes(peerID)
-
-	// Direktno lepljenje sirovog stringa, bez Go-ovih url funkcija koje skraćuju bajtove
-	apiURL := fmt.Sprintf(
-		"https://torrent.ubuntu.com/announce?compact=1&downloaded=0&info_hash=%s&left=%s&peer_id=%s&port=6881&uploaded=0",
-		infoHashEscaped,
-		left,
-		peerIDEscaped,
-	)
-	fmt.Println(apiURL)
-	resp, err := http.Get(apiURL)
+	resp, err := http.Get(req.URL.String())
 	if err != nil {
 		log.Fatalf("Request failed: %v", err)
 	}
@@ -82,14 +65,7 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 
 	return peers, nil
 }
-func urlEncodeBytes(b []byte) string {
-	var buf strings.Builder
-	for _, byteVal := range b {
-		// %02X striktno ispisuje procenat i dva heksadecimalna mesta (npr. %07, %6C)
-		buf.WriteString(fmt.Sprintf("%%%02X", byteVal))
-	}
-	return buf.String()
-}
+
 func decodePeerBody(body []byte) ([]*Peer, error) {
 	decoder := bencode.NewDecoder(body)
 	res, err := decoder.Decode(decoder.Buffer, 0)
