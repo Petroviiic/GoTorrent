@@ -3,6 +3,7 @@ package peer
 import "net"
 
 type PeerClient struct {
+	Id         int
 	Choked     bool
 	Interested bool
 	Bitfield   []byte
