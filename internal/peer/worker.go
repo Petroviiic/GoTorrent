@@ -47,6 +47,10 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			return
 		}
 
+		if currentPiece == nil && len(p.Manager.workChannel) == 0 {
+			log.Printf("peer %v finished", p.Id)
+			return
+		}
 		log.Printf("peer %v %v %v %v %v\n", p.Id, currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
 		if currentPiece == nil && !p.Choked && p.Bitfield != nil && !bytes.Equal(p.Bitfield, []byte{0}) {
 			currentPiece = p.getNextAvailablePiece()
