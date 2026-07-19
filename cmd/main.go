@@ -53,4 +53,14 @@ func main() {
 	}
 
 	wg.Wait()
+
+	fmt.Println("done", len(workManager.Storage), len(workManager.Storage) == workManager.TotalPieces)
+
+	if len(workManager.Storage) != workManager.TotalPieces {
+		for i := range workManager.TotalPieces {
+			if _, ok := workManager.Storage[i]; !ok {
+				fmt.Println(i)
+			}
+		}
+	}
 }
