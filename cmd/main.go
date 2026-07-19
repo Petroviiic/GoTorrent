@@ -44,8 +44,9 @@ func main() {
 
 	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength)
 	var wg sync.WaitGroup
-	for _, worker := range workers {
+	for i, worker := range workers {
 		worker.Manager = workManager
+		worker.Id = i + 1
 
 		wg.Add(1)
 		go worker.StartWorker(&wg)
