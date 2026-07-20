@@ -12,13 +12,14 @@ type Manager struct {
 }
 
 // TODO : dodaj rarest first. ovaj trenutni approach je dobar ako zelim preview tipa film neki pa pieces moraju jedan za drugim da dolaze
-func NewManager(pieces []byte, pieceSize int) *Manager {
+func NewManager(pieces []byte, pieceSize int, totalLength int) *Manager {
 	totalPieces := len(pieces) / 20
 	manager := &Manager{
 		workChannel: make(chan PieceOfWork, totalPieces),
 		Storage:     make(map[int][]byte),
 		TotalPieces: totalPieces,
 	}
+	// for i, j := 28000, 1400; i < len(pieces); j++ {
 	for i, j := 0, 0; i < len(pieces); j++ {
 		endIndex := i + 20
 		if endIndex > len(pieces) {
@@ -27,10 +28,15 @@ func NewManager(pieces []byte, pieceSize int) *Manager {
 		hashCopy := make([]byte, endIndex-i)
 		copy(hashCopy, pieces[i:endIndex])
 
+		currentPieceLength := pieceSize
+		if j == totalPieces-1 {
+			currentPieceLength = totalLength - (j * pieceSize)
+		}
+
 		workPiece := PieceOfWork{
 			Index:  j,
 			Hash:   hashCopy,
-			Length: pieceSize,
+			Length: currentPieceLength,
 		}
 
 		manager.workChannel <- workPiece
@@ -47,5 +53,5 @@ func (m *Manager) AddNewEntry(index int, hash []byte) {
 	}
 	m.Storage[index] = hash
 
-	fmt.Println("storage ", len(m.Storage))
+	fmt.Printf("new entry index %v, storage len %v\n", index, len(m.Storage))
 }
