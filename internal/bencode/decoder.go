@@ -63,11 +63,15 @@ func (d *Decoder) Decode(buffer []byte, index int) (map[any]any, error) {
 			res, newIndex, err := d.Decoders[b](i)
 
 			if err != nil {
-				break
+				return nil, err
 			}
 
 			i = newIndex
 			mainMap = res.(map[any]any)
+			break
+		case b == '\r' || b == '\n' || b == ' ' || b == '\t':
+			i++
+			break
 		}
 	}
 
@@ -151,6 +155,7 @@ func (d *Decoder) DecodeInt(index int) (any, int, error) {
 
 func (d *Decoder) DecodeString(index int) (any, int, error) {
 	end := index
+
 	for i := index; i < len(d.Buffer); i++ {
 		b := (d.Buffer)[i]
 		if b == ':' {
