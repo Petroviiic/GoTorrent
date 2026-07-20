@@ -2,7 +2,7 @@ package bencode
 
 type Decoder struct {
 	Buffer   []byte
-	Decoders map[byte]func(int) (any, int, error) // Funkcije sad primaju samo indeks!
+	Decoders map[byte]func(int) (any, int, error)
 }
 
 func NewDecoder(buffer []byte) *Decoder {
