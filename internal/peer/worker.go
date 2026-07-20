@@ -3,6 +3,7 @@ package peer
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"sync"
@@ -51,7 +52,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			log.Printf("peer %v finished", p.Id)
 			return
 		}
-		log.Printf("peer %v %v %v %v %v\n", p.Id, currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
+		//log.Printf("peer %v %v %v %v %v\n", p.Id, currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
 		if currentPiece == nil && !p.Choked && p.Bitfield != nil && !bytes.Equal(p.Bitfield, []byte{0}) {
 			currentPiece = p.getNextAvailablePiece()
 			if currentPiece != nil {
@@ -62,11 +63,11 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 			}
 		}
 
-		if msg.ID != message.Piece {
-			log.Printf("peer %v success %v\n", p.Id, msg)
-		} else {
-			log.Printf("peer %v success new piece\n", p.Id)
-		}
+		// if msg.ID != message.Piece {
+		// 	log.Printf("peer %v success %v\n", p.Id, msg)
+		// } else {
+		// 	log.Printf("peer %v success new piece\n", p.Id)
+		// }
 		switch msg.ID {
 		case message.Choke:
 			p.Choked = true
@@ -95,11 +96,15 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 
 			if currentPiece == nil || blocksArrived == nil {
 				log.Printf("peer %v piece received but skipping it because : %v %v\n", p.Id, currentPiece == nil, blocksArrived == nil)
+
+				if currentPiece != nil {
+					log.Println("skipped ", currentPiece.Index)
+				}
 				continue
 			}
 			pieceOfResult := DecodePiece(msg.Payload)
-			//log.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
 
+			// log.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
 			if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
 				blocksArrived[pieceOfResult.BlockOffset/BLOCK_SIZE] = pieceOfResult
 				blocksArrivedCount++
@@ -110,7 +115,9 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 					p.sendRequests(currentPiece, startBlockIndex)
 				}
 			}
-			log.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE, startBlockIndex)
+			// if currentPiece.Index == 1421 {
+			// 	log.Println(blocksArrivedCount, currentPiece.Length/BLOCK_SIZE, startBlockIndex)
+			// }
 			if blocksArrivedCount == currentPiece.Length/BLOCK_SIZE {
 				if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 					//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
@@ -146,8 +153,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup) {
 }
 
 func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
-	log.Printf("peer %v finding next available piece\n", p.Id)
-	log.Printf("peer %d bitfield: %v, length of workchannel %v\n", p.Id, p.Bitfield, len(p.Manager.workChannel))
+	// log.Printf("peer %v finding next available piece\n", p.Id)
+	// log.Printf("peer %d bitfield: %v, length of workchannel %v\n", p.Id, p.Bitfield, len(p.Manager.workChannel))
 	i := 0
 	for {
 		if i >= p.Manager.TotalPieces {
@@ -161,7 +168,7 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 			}
 
 			if p.HasPiece(piece.Index) {
-				log.Printf("peer %v next piece : %v\n", p.Id, piece)
+				//log.Printf("peer %v next piece : %v\n", p.Id, piece)
 				return &piece
 			}
 
@@ -175,17 +182,18 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 }
 func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int) {
 	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
-	log.Printf("peer %d sending requests for %v\n", p.Id, currentPiece)
-
+	//log.Printf("peer %d sending requests for %v\n", p.Id, currentPiece)
 	endBlockIndex := startBlockIndex + BLOCKS_SENT_PER_REQUEST //ovo dodaj da salje 5 po 5 npr ako bude blokirao... a blokira. ugl dodaj mzd kao parametre funkcije pocetni i krajnji indeks koji se trebaju poslati
 	if len(blocks) < endBlockIndex {
 		endBlockIndex = len(blocks)
+	}
+	if currentPiece.Index == 1421 {
+		fmt.Println(p.Id, startBlockIndex, endBlockIndex)
 	}
 	for i := startBlockIndex; i < endBlockIndex; i++ {
 		if err := message.SendRequest(p.Conn, currentPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
 			log.Println(err)
 		}
 	}
-
-	log.Printf("peer %d requests sent for %v\n", p.Id, currentPiece)
+	//log.Printf("peer %d requests sent for %v\n", p.Id, currentPiece)
 }
