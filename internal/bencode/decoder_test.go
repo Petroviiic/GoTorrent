@@ -75,6 +75,19 @@ func TestDecoders(t *testing.T) {
 			expectedRes:   map[any]any{"meaning": 42, "wiki": []byte("bencode")},
 			expectedIndex: len([]byte("d7:meaningi42e4:wiki7:bencodee")),
 		},
+		{
+			name:    "sus tracker response",
+			buffer:  []byte("d8:completei0e10:incompletei0e8:intervali120e5:peers0:6:peers60:e\r\n"),
+			wantErr: false,
+			expectedRes: map[any]any{
+				"complete":   0,
+				"incomplete": 0,
+				"interval":   120,
+				"peers":      []byte(""),
+				"peers6":     []byte(""),
+			},
+			expectedIndex: len([]byte("d8:completei0e10:incompletei0e8:intervali120e5:peers0:6:peers60:e")),
+		},
 	}
 
 	for _, tt := range tests {
