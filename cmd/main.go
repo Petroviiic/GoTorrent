@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -41,16 +42,24 @@ func main() {
 
 	fmt.Printf("connected to %v clients\n", len(workers))
 	//workChannel := make(chan peer.PieceOfWork, 100)
+	if len(workers) == 0 {
+		return
+	}
+	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, torrentFile.Info.Length)
 
-	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength)
+	ctx, cancel := context.WithCancel(context.Background())
+
 	var wg sync.WaitGroup
 	for i, worker := range workers {
 		worker.Manager = workManager
 		worker.Id = i + 1
 
 		wg.Add(1)
-		go worker.StartWorker(&wg)
+		go worker.StartWorker(&wg, ctx)
 	}
+
+	<-workManager.DoneChannel
+	cancel()
 
 	wg.Wait()
 
@@ -58,7 +67,7 @@ func main() {
 
 	if len(workManager.Storage) != workManager.TotalPieces {
 		for i := range workManager.TotalPieces {
-			if _, ok := workManager.Storage[i]; !ok {
+			if _, ok := workManager.Storage[i]; !ok { //&& i > 1400 {
 				fmt.Println(i)
 			}
 		}
