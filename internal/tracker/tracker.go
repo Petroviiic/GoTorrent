@@ -109,14 +109,14 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	}
 
 	params := req.URL.Query()
-	params.Add("info_hash", urlEncodeBytes(infoHash))
-	params.Add("peer_id", urlEncodeBytes(peerID))
+	params.Add("info_hash", string(infoHash))
+	params.Add("peer_id", string(peerID))
 	params.Add("port", "6881")
 	params.Add("uploaded", "0")
 	params.Add("downloaded", "0")
 	params.Add("left", left)
 	params.Add("compact", "1")
-	params.Add("numwant", "100")
+	params.Add("numwant", "50")
 
 	// encodedInfoHash := urlEncodeBytes(infoHash)
 	// encodedPeerID := urlEncodeBytes(peerID)
@@ -128,7 +128,7 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	req.URL.RawQuery = params.Encode()
 	req = req.WithContext(ctx)
 
-	// fmt.Println(req.URL.String())
+	fmt.Println(req.URL.String())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("Request failed: %v", err)
@@ -136,7 +136,8 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
-	// fmt.Printf("Sirovi odgovor od trackera (string): %s\n", string(body))
+
+	//fmt.Printf("Sirovi odgovor od trackera (string): %s\n", string(body))
 	// fmt.Printf("Sirovi odgovor (hex/bytes len): %d\n", len(body))
 	peers, err := decodePeerBody(body)
 	if err != nil {
@@ -146,14 +147,14 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	return peers, nil
 }
 
-func urlEncodeBytes(b []byte) string {
-	var buf strings.Builder
-	for _, byteVal := range b {
-		buf.WriteByte('%')
-		buf.WriteString(fmt.Sprintf("%02X", byteVal))
-	}
-	return buf.String()
-}
+// func urlEncodeBytes(b []byte) string {
+// 	var buf strings.Builder
+// 	for _, byteVal := range b {
+// 		buf.WriteByte('%')
+// 		buf.WriteString(fmt.Sprintf("%02X", byteVal))
+// 	}
+// 	return buf.String()
+// }
 
 func decodePeerBody(body []byte) ([]*Peer, error) {
 	decoder := bencode.NewDecoder(body)
