@@ -208,6 +208,10 @@ func (d *Decoder) DecodeDictionary(index int) (any, int, error) {
 		if err != nil {
 			return nil, -1, err
 		}
+		if (d.Buffer)[i] == 'e' {
+			end = i
+			break
+		}
 
 		if isKey {
 			item = string(item.([]byte))
@@ -221,10 +225,6 @@ func (d *Decoder) DecodeDictionary(index int) (any, int, error) {
 		}
 		i = newIndex
 
-		if (d.Buffer)[i] == 'e' {
-			end = i
-			break
-		}
 	}
 
 	return res, end + 1, nil
