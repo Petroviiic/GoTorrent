@@ -88,6 +88,16 @@ func TestDecoders(t *testing.T) {
 			},
 			expectedIndex: len([]byte("d8:completei0e10:incompletei0e8:intervali120e5:peers0:6:peers60:e")),
 		},
+		{
+			name:    "test",
+			buffer:  []byte("d8:intervali1800e5:peersdee"),
+			wantErr: false,
+			expectedRes: map[any]any{
+				"interval": 1800,
+				"peers":    map[any]any{},
+			},
+			expectedIndex: len([]byte("d8:intervali1800e5:peersdee")),
+		},
 	}
 
 	for _, tt := range tests {
