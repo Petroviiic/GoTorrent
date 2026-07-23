@@ -87,14 +87,20 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		wg          sync.WaitGroup
 		mutex       sync.Mutex
 		uniquePeers = make(map[string]*Peer)
+		semaphore   = make(chan struct{}, 8) //amount of concurrent requests allowed
 	)
+	// mutex.Lock()
+	// mutex.Unlock()
 	for _, trackerURL := range trackerURLs {
+		//concurrent
 		wg.Add(1)
-
 		go func(url string) {
 			defer wg.Done()
-			newPeers, err := sendRequest(url, infoHash, peerID, left)
 
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			newPeers, err := sendRequest(url, infoHash, peerID, left)
 			if err != nil {
 				return
 			}
@@ -107,7 +113,26 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 			mutex.Unlock()
 
 		}(trackerURL)
+
+		// //sequential
+		// newPeers, err := sendRequest(trackerURL, infoHash, peerID, left)
+
+		// if err != nil {
+		// 	continue
+		// }
+
+		// for _, p := range newPeers {
+		// 	key := fmt.Sprintf("%s:%d", p.IP, p.Port)
+		// 	uniquePeers[key] = p
+		// }
 	}
+	// go func() {
+	// 	time.Sleep(30 * time.Second)
+	// 	println("\n--- DEADLOCKED GOROUTINES ---")
+	// 	pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+	// 	println("------------------------------------\n")
+	// }()
+
 	wg.Wait()
 	peers := []*Peer{}
 	for _, p := range uniquePeers {
@@ -132,7 +157,8 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	params.Add("compact", "1")
 	params.Add("numwant", "50")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	req.Header.Set("User-Agent", "qBittorrent/4.6.3")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	req.URL.RawQuery = params.Encode()
 	req = req.WithContext(ctx)
@@ -146,7 +172,7 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 
-	//fmt.Printf("Sirovi odgovor od trackera (string): %s\n", string(body))
+	// fmt.Printf("Sirovi odgovor od trackera (string): %s\n", string(body))
 	// fmt.Printf("Sirovi odgovor (hex/bytes len): %d\n", len(body))
 	peers, err := decodePeerBody(body)
 	if err != nil {
