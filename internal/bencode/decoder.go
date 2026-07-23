@@ -60,7 +60,7 @@ func (d *Decoder) Decode(buffer []byte, index int) (map[any]any, error) {
 	for i := index; i < len(buffer); {
 		switch b := buffer[i]; {
 		case b == 'd':
-			res, newIndex, err := d.Decoders[b](i)
+			res, newIndex, err := d.DecodeByte(i)
 
 			if err != nil {
 				return nil, err
@@ -72,6 +72,8 @@ func (d *Decoder) Decode(buffer []byte, index int) (map[any]any, error) {
 		case b == '\r' || b == '\n' || b == ' ' || b == '\t':
 			i++
 			break
+		default:
+			return nil, fmt.Errorf("bencode: unexpected token '%c' (byte 0x%02x) at index %d", b, b, i)
 		}
 	}
 
@@ -177,9 +179,7 @@ func (d *Decoder) DecodeList(index int) (any, int, error) {
 
 	end := index
 	for i := index + 1; i < len(d.Buffer); {
-		b := (d.Buffer)[i]
-
-		item, newIndex, err := d.Decoders[b](i)
+		item, newIndex, err := d.DecodeByte(i)
 
 		if err != nil {
 			return nil, -1, err
@@ -203,8 +203,8 @@ func (d *Decoder) DecodeDictionary(index int) (any, int, error) {
 	isKey := true
 	var lastKey any
 	for i := index + 1; i < len(d.Buffer); {
-		b := (d.Buffer)[i]
-		item, newIndex, err := d.Decoders[b](i)
+		item, newIndex, err := d.DecodeByte(i)
+
 		if err != nil {
 			return nil, -1, err
 		}
