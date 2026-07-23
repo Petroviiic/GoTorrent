@@ -88,8 +88,6 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		mutex       sync.Mutex
 		uniquePeers = make(map[string]*Peer)
 	)
-	//uniquePeers := make(map[string]*Peer)
-
 	for _, trackerURL := range trackerURLs {
 		wg.Add(1)
 
@@ -134,11 +132,6 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	params.Add("compact", "1")
 	params.Add("numwant", "50")
 
-	// encodedInfoHash := urlEncodeBytes(infoHash)
-	// encodedPeerID := urlEncodeBytes(peerID)
-	// req.URL.RawQuery = fmt.Sprintf(
-	// 	"info_hash=%s&peer_id=%s&port=6881&uploaded=0&downloaded=0&left=%s&compact=1&numwant=50&event=started", encodedInfoHash, encodedPeerID, left,
-	// )
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	req.URL.RawQuery = params.Encode()
@@ -162,15 +155,6 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 
 	return peers, nil
 }
-
-// func urlEncodeBytes(b []byte) string {
-// 	var buf strings.Builder
-// 	for _, byteVal := range b {
-// 		buf.WriteByte('%')
-// 		buf.WriteString(fmt.Sprintf("%02X", byteVal))
-// 	}
-// 	return buf.String()
-// }
 
 func decodePeerBody(body []byte) ([]*Peer, error) {
 	decoder := bencode.NewDecoder(body)
