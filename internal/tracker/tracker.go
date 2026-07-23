@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
@@ -81,20 +82,35 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		"http://tracker.dler.com:6969/announce",
 		"http://tracker.dhitechnical.com:6969/announce",
 	)
-	uniquePeers := make(map[string]*Peer)
+
+	var (
+		wg          sync.WaitGroup
+		mutex       sync.Mutex
+		uniquePeers = make(map[string]*Peer)
+	)
+	//uniquePeers := make(map[string]*Peer)
+
 	for _, trackerURL := range trackerURLs {
-		newPeers, err := sendRequest(trackerURL, infoHash, peerID, left)
+		wg.Add(1)
 
-		if err != nil {
-			continue
-		}
+		go func(url string) {
+			defer wg.Done()
+			newPeers, err := sendRequest(url, infoHash, peerID, left)
 
-		for _, p := range newPeers {
-			key := fmt.Sprintf("%s:%d", p.IP, p.Port)
-			uniquePeers[key] = p
-		}
+			if err != nil {
+				return
+			}
+
+			mutex.Lock()
+			for _, p := range newPeers {
+				key := fmt.Sprintf("%s:%d", p.IP, p.Port)
+				uniquePeers[key] = p
+			}
+			mutex.Unlock()
+
+		}(trackerURL)
 	}
-
+	wg.Wait()
 	peers := []*Peer{}
 	for _, p := range uniquePeers {
 		peers = append(peers, p)
