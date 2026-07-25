@@ -13,6 +13,8 @@ import (
 	"github.com/Petroviiic/GoTorrent/internal/utils"
 )
 
+const DOWNLOAD_PATH = "E:\\BittorrentClientTest"
+
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: go run ./... <path_to_torrent_file>")
@@ -28,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fileList := storage.GetFilesList(&torrentFile.Info)
+	fileList, totalSize := storage.GetFilesList(DOWNLOAD_PATH, &torrentFile.Info)
 	fmt.Printf("torrent file successfully loaded; pieces count : %v, files %v, number of files %v, one piece length : %v\n", len(torrentFile.Info.Pieces), fileList, len(fileList), torrentFile.Info.PieceLength)
 
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
@@ -48,8 +50,7 @@ func main() {
 	if len(workers) == 0 {
 		return
 	}
-	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, torrentFile.Info.Length)
-
+	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var wg sync.WaitGroup
