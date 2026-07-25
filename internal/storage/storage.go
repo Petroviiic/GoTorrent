@@ -33,11 +33,13 @@ func NewStorage(fileInfo []File) *Storage {
 		handler, err := os.OpenFile(file.Path, os.O_RDWR|os.O_CREATE, 0666)
 
 		if err != nil {
+			storage.Close()
 			return nil
 		}
 
 		if err := Preallocate(handler, 0, int64(file.Size)); err != nil {
 			fmt.Println(err)
+			storage.Close()
 			return nil
 		}
 
