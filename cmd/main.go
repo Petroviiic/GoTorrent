@@ -15,6 +15,8 @@ import (
 
 const DOWNLOAD_PATH = "E:\\BittorrentClientTest"
 
+// const DOWNLOAD_PATH = "C:\\BittorrentClientTest"
+
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: go run ./... <path_to_torrent_file>")
@@ -31,7 +33,18 @@ func main() {
 	}
 
 	fileList, totalSize := storage.GetFilesList(DOWNLOAD_PATH, &torrentFile.Info)
-	fmt.Printf("torrent file successfully loaded; pieces count : %v, files %v, number of files %v, one piece length : %v\n", len(torrentFile.Info.Pieces), fileList, len(fileList), torrentFile.Info.PieceLength)
+	fmt.Printf("torrent file successfully loaded; pieces count : %v, files %v, number of files %v, one piece length : %v\n", len(torrentFile.Info.Pieces)/20, fileList, len(fileList), torrentFile.Info.PieceLength)
+
+	//neka prvo provjeri da li neki pieces vec postoje u fajlu da ne skida ponovo dzaba sve
+	//na disku je raw data, pa se mora provjeriti sha hash dijelova fajla!!
+
+	//takodje mogu dodati procentnost skinutosti, kao pieces_in_queue/total_num_of_pieces
+	storage, err := storage.NewStorage(fileList, int64(torrentFile.Info.PieceLength))
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
 
@@ -76,4 +89,6 @@ func main() {
 			}
 		}
 	}
+
+	storage.Close()
 }
