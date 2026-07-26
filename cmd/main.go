@@ -63,7 +63,7 @@ func main() {
 	if len(workers) == 0 {
 		return
 	}
-	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize)
+	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var wg sync.WaitGroup
@@ -80,11 +80,11 @@ func main() {
 
 	wg.Wait()
 
-	fmt.Println("done", len(workManager.Storage), len(workManager.Storage) == workManager.TotalPieces)
+	fmt.Println("done", len(workManager.MockStorage), len(workManager.MockStorage) == workManager.TotalPieces)
 
-	if len(workManager.Storage) != workManager.TotalPieces {
+	if len(workManager.MockStorage) != workManager.TotalPieces {
 		for i := range workManager.TotalPieces {
-			if _, ok := workManager.Storage[i]; !ok { //&& i > 1400 {
+			if _, ok := workManager.MockStorage[i]; !ok { //&& i > 1400 {
 				fmt.Println(i)
 			}
 		}
