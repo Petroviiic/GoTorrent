@@ -9,12 +9,13 @@ import (
 )
 
 type Manager struct {
-	workChannel chan PieceOfWork
-	TotalPieces int
-	MockStorage map[int][]byte
-	DoneChannel chan struct{}
-	mutex       sync.Mutex
-	Storage     *storage.Storage
+	workChannel      chan PieceOfWork
+	TotalPieces      int
+	DoneChannel      chan struct{}
+	mutex            sync.Mutex
+	Storage          *storage.Storage
+	DownloadedPieces map[int]struct{}
+	CompletedPieces  int64
 }
 
 // TODO : dodaj rarest first. ovaj trenutni approach je dobar ako zelim preview tipa film neki pa pieces moraju jedan za drugim da dolaze
@@ -22,11 +23,12 @@ func NewManager(pieces []byte, pieceSize int, totalLength int, storage *storage.
 	totalPieces := len(pieces) / 20
 
 	manager := &Manager{
-		workChannel: make(chan PieceOfWork, totalPieces),
-		MockStorage: make(map[int][]byte),
-		TotalPieces: totalPieces,
-		DoneChannel: make(chan struct{}),
-		Storage:     storage,
+		workChannel:      make(chan PieceOfWork, totalPieces),
+		TotalPieces:      totalPieces,
+		DoneChannel:      make(chan struct{}),
+		Storage:          storage,
+		DownloadedPieces: make(map[int]struct{}),
+		CompletedPieces:  0,
 	}
 	// for i, j := 28000, 1400; i < len(pieces); j++ {
 	for i, j := 0, 0; i < len(pieces); j++ {
@@ -55,19 +57,21 @@ func NewManager(pieces []byte, pieceSize int, totalLength int, storage *storage.
 	return manager
 }
 
-func (m *Manager) AddNewEntry(index int, hash []byte) {
+func (m *Manager) AddNewEntry(index int, data []byte) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if _, ok := m.MockStorage[index]; ok {
+	if _, ok := m.DownloadedPieces[index]; ok {
 		log.Printf("piece with index %v already exists in the storage", index)
 		return
 	}
-	m.MockStorage[index] = hash
+	m.DownloadedPieces[index] = struct{}{}
 
-	fmt.Printf("new entry index %v, storage len %v\n", index, len(m.MockStorage))
+	m.Storage.AddToBuffer(data, int64(index))
 
-	if len(m.MockStorage) == m.TotalPieces {
+	fmt.Printf("new entry index %v, storage len %v\n", index, len(m.DownloadedPieces))
+
+	if len(m.DownloadedPieces) == m.TotalPieces {
 		// if len(m.Storage) == 22 {
 		fmt.Println("download done")
 		close(m.DoneChannel)
