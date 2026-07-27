@@ -16,6 +16,8 @@ type Storage struct {
 	files       []FileInfo
 	pieceLength int64
 	totalSize   int64
+
+	Buffer chan DownloadedPieceData
 }
 
 func NewStorage(fileInfo []File, pieceLength int64) (*Storage, error) {
@@ -23,6 +25,7 @@ func NewStorage(fileInfo []File, pieceLength int64) (*Storage, error) {
 
 	storage := &Storage{
 		totalSize: 0,
+		Buffer:    make(chan DownloadedPieceData, 50),
 	}
 
 	for _, file := range fileInfo {
@@ -62,5 +65,12 @@ func (s *Storage) Close() {
 		if file.Handler != nil {
 			file.Handler.Close()
 		}
+	}
+}
+
+func (s *Storage) AddToBuffer(data []byte, index int64) {
+	s.Buffer <- DownloadedPieceData{
+		data:       data,
+		pieceIndex: index,
 	}
 }
