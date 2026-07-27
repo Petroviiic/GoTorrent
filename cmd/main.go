@@ -34,7 +34,6 @@ func main() {
 
 	fileList, totalSize := storage.GetFilesList(DOWNLOAD_PATH, &torrentFile.Info)
 	fmt.Printf("torrent file successfully loaded; pieces count : %v, files %v, number of files %v, one piece length : %v\n", len(torrentFile.Info.Pieces)/20, fileList, len(fileList), torrentFile.Info.PieceLength)
-
 	//neka prvo provjeri da li neki pieces vec postoje u fajlu da ne skida ponovo dzaba sve
 	//na disku je raw data, pa se mora provjeriti sha hash dijelova fajla!!
 
@@ -66,25 +65,32 @@ func main() {
 	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var wg sync.WaitGroup
+	var storageWg sync.WaitGroup
+	storageWg.Add(1)
+	go storage.StartWorker(&storageWg, nil)
+
+	var peerWg sync.WaitGroup
 	for i, worker := range workers {
 		worker.Manager = workManager
 		worker.Id = i + 1
 
-		wg.Add(1)
-		go worker.StartWorker(&wg, ctx)
+		peerWg.Add(1)
+		go worker.StartWorker(&peerWg, ctx)
 	}
 
 	<-workManager.DoneChannel
 	cancel()
 
-	wg.Wait()
+	peerWg.Wait()
 
-	fmt.Println("done", len(workManager.MockStorage), len(workManager.MockStorage) == workManager.TotalPieces)
+	close(storage.Buffer)
+	storageWg.Wait()
 
-	if len(workManager.MockStorage) != workManager.TotalPieces {
+	fmt.Println("done", len(workManager.DownloadedPieces), len(workManager.DownloadedPieces) == workManager.TotalPieces)
+
+	if len(workManager.DownloadedPieces) != workManager.TotalPieces {
 		for i := range workManager.TotalPieces {
-			if _, ok := workManager.MockStorage[i]; !ok { //&& i > 1400 {
+			if _, ok := workManager.DownloadedPieces[i]; !ok { //&& i > 1400 {
 				fmt.Println(i)
 			}
 		}
