@@ -59,15 +59,15 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 				return
 			}
 
-			if currentPiece == nil && len(p.Manager.workChannel) == 0 {
-				log.Printf("peer %v finished", p.Id)
-				return
-			}
+			// if currentPiece == nil && len(p.Manager.workChannel) == 0 {
+			// 	log.Printf("peer %v finished", p.Id)
+			// 	return
+			// }
 			//log.Printf("peer %v %v %v %v %v\n", p.Id, currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
 			if currentPiece == nil && !p.Choked && p.Bitfield != nil && !bytes.Equal(p.Bitfield, []byte{0}) {
 				currentPiece = p.getNextAvailablePiece()
 				if currentPiece != nil {
-					blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
+					blocksArrived = make([]*PieceOfResult, (currentPiece.Length+BLOCK_SIZE-1)/BLOCK_SIZE)
 					blocksArrivedCount = 0
 					startBlockIndex = 0
 					p.sendRequests(currentPiece, startBlockIndex)
@@ -127,9 +127,9 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 				}
 
 				if blocksArrivedCount == currentPiece.Length/BLOCK_SIZE {
-					if fullHash, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
+					if downloadedData, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 						//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
-						p.Manager.AddNewEntry(currentPiece.Index, fullHash)
+						p.Manager.AddNewEntry(currentPiece.Index, downloadedData)
 					} else {
 						log.Printf("peer %v wrong hash for piece %v\n", p.Id, currentPiece.Index)
 						p.Manager.workChannel <- *currentPiece
@@ -142,7 +142,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 					if !p.Choked {
 						currentPiece = p.getNextAvailablePiece()
 						if currentPiece != nil {
-							blocksArrived = make([]*PieceOfResult, currentPiece.Length/BLOCK_SIZE)
+							blocksArrived = make([]*PieceOfResult, (currentPiece.Length+BLOCK_SIZE-1)/BLOCK_SIZE)
 							blocksArrivedCount = 0
 							startBlockIndex = 0
 							p.sendRequests(currentPiece, startBlockIndex)
@@ -198,7 +198,13 @@ func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int
 	}
 
 	for i := startBlockIndex; i < endBlockIndex; i++ {
-		if err := message.SendRequest(p.Conn, currentPiece.Index, i*BLOCK_SIZE, BLOCK_SIZE); err != nil {
+		reqLength := BLOCK_SIZE
+		blockOffset := i * BLOCK_SIZE
+		if blockOffset+reqLength > currentPiece.Length {
+			reqLength = currentPiece.Length - blockOffset
+		}
+
+		if err := message.SendRequest(p.Conn, currentPiece.Index, blockOffset, reqLength); err != nil {
 			log.Println(err)
 		}
 	}
