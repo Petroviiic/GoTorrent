@@ -91,6 +91,9 @@ func ParseTorrentMap(mainMap map[any]any) *TorrentFile {
 		for _, outer := range announce_list.([]interface{}) {
 			items := []string{}
 			for _, inner := range outer.([]interface{}) {
+				if inner == nil {
+					continue
+				}
 				items = append(items, string(inner.([]byte)))
 			}
 
