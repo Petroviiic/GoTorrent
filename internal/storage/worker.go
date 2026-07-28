@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"log"
 	"sync"
 )
@@ -11,25 +10,13 @@ type DownloadedPieceData struct {
 	pieceIndex int64
 }
 
-func (s *Storage) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
+func (s *Storage) StartWorker(wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 	}()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case piece, ok := <-s.Buffer:
-			if !ok {
-				continue
-			}
-
-			if err := s.WriteAt(piece.data, piece.pieceIndex); err != nil {
-				log.Println("storage worker error : ", err)
-				//s.buffer <- piece
-				continue
-			}
+	for piece := range s.Buffer {
+		if err := s.WriteAt(piece.data, piece.pieceIndex); err != nil {
+			log.Printf("storage worker error on piece %d: %v\n", piece.pieceIndex, err)
 		}
 	}
 }
