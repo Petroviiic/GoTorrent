@@ -51,6 +51,9 @@ func (p *PeerClient) UpdatePiece(pieceIndex int) {
 func HashOk(downloadedPieces []*PieceOfResult, expected []byte) ([]byte, bool) {
 	gotData := []byte{}
 	for _, piece := range downloadedPieces {
+		if piece == nil {
+			return nil, false
+		}
 		gotData = append(gotData, piece.Downloaded...)
 	}
 
