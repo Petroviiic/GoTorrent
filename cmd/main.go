@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime/pprof"
 	"sync"
+	"time"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
 	"github.com/Petroviiic/GoTorrent/internal/peer"
@@ -58,17 +60,22 @@ func main() {
 	workers := peer.ConnectToPeers(peers, infoHash, peerID)
 
 	fmt.Printf("connected to %v clients\n", len(workers))
-	//workChannel := make(chan peer.PieceOfWork, 100)
+
 	if len(workers) == 0 {
 		return
 	}
-	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage)
+	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage, 1347, -1)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var storageWg sync.WaitGroup
 	storageWg.Add(1)
-	go storage.StartWorker(&storageWg, nil)
-
+	go storage.StartWorker(&storageWg)
+	go func() {
+		time.Sleep(30 * time.Second)
+		println("\n--- DEADLOCKED GOROUTINES ---")
+		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+		println("------------------------------------\n")
+	}()
 	var peerWg sync.WaitGroup
 	for i, worker := range workers {
 		worker.Manager = workManager
