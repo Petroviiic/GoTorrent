@@ -16,9 +16,10 @@ const BLOCK_SIZE = 16384
 const BLOCKS_SENT_PER_REQUEST = 5
 
 type PieceOfWork struct {
-	Index  int
-	Hash   []byte
-	Length int
+	TotalBlocks int
+	Index       int
+	Hash        []byte
+	Length      int
 }
 type PieceOfResult struct {
 	PieceIndex  int
@@ -30,7 +31,10 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 	defer func() {
 		p.Conn.Close()
 		wg.Done()
+		p.Manager.WorkerDone()
 	}()
+
+	p.Manager.WorkerStarted()
 
 	startBlockIndex := 0
 	blocksArrivedCount := 0
@@ -59,15 +63,10 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 				return
 			}
 
-			// if currentPiece == nil && len(p.Manager.workChannel) == 0 {
-			// 	log.Printf("peer %v finished", p.Id)
-			// 	return
-			// }
-			//log.Printf("peer %v %v %v %v %v\n", p.Id, currentPiece == nil, !p.Choked, p.Bitfield != nil, !bytes.Equal(p.Bitfield, []byte{0}))
 			if currentPiece == nil && !p.Choked && p.Bitfield != nil && !bytes.Equal(p.Bitfield, []byte{0}) {
 				currentPiece = p.getNextAvailablePiece()
 				if currentPiece != nil {
-					blocksArrived = make([]*PieceOfResult, (currentPiece.Length+BLOCK_SIZE-1)/BLOCK_SIZE)
+					blocksArrived = make([]*PieceOfResult, currentPiece.TotalBlocks)
 					blocksArrivedCount = 0
 					startBlockIndex = 0
 					p.sendRequests(currentPiece, startBlockIndex)
@@ -116,7 +115,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 				pieceOfResult := DecodePiece(msg.Payload)
 
 				// log.Println(pieceOfResult.PieceIndex, pieceOfResult.BlockOffset/BLOCK_SIZE)
-				if blocksArrivedCount < currentPiece.Length/BLOCK_SIZE {
+				if blocksArrivedCount < currentPiece.TotalBlocks {
 					blocksArrived[pieceOfResult.BlockOffset/BLOCK_SIZE] = pieceOfResult
 					blocksArrivedCount++
 
@@ -126,7 +125,8 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 					}
 				}
 
-				if blocksArrivedCount == currentPiece.Length/BLOCK_SIZE {
+				//if blocksArrivedCount == (currentPiece.Length+BLOCK_SIZE-1)/BLOCK_SIZE {
+				if blocksArrivedCount == currentPiece.TotalBlocks {
 					if downloadedData, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 						//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
 						p.Manager.AddNewEntry(currentPiece.Index, downloadedData)
@@ -142,7 +142,7 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 					if !p.Choked {
 						currentPiece = p.getNextAvailablePiece()
 						if currentPiece != nil {
-							blocksArrived = make([]*PieceOfResult, (currentPiece.Length+BLOCK_SIZE-1)/BLOCK_SIZE)
+							blocksArrived = make([]*PieceOfResult, currentPiece.TotalBlocks)
 							blocksArrivedCount = 0
 							startBlockIndex = 0
 							p.sendRequests(currentPiece, startBlockIndex)
@@ -189,12 +189,11 @@ func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
 	}
 }
 func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int) {
-	blocks := make([][]byte, currentPiece.Length/BLOCK_SIZE)
 	//log.Printf("peer %d sending requests for %v\n", p.Id, currentPiece)
 
 	endBlockIndex := startBlockIndex + BLOCKS_SENT_PER_REQUEST
-	if len(blocks) < endBlockIndex {
-		endBlockIndex = len(blocks)
+	if currentPiece.TotalBlocks < endBlockIndex {
+		endBlockIndex = currentPiece.TotalBlocks
 	}
 
 	for i := startBlockIndex; i < endBlockIndex; i++ {
@@ -204,9 +203,12 @@ func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int
 			reqLength = currentPiece.Length - blockOffset
 		}
 
+		// if currentPiece.Index == 1349 {
+		// 	fmt.Println("evoooo", currentPiece, blockOffset, reqLength, startBlockIndex, endBlockIndex, currentPiece.TotalBlocks)
+		// }
 		if err := message.SendRequest(p.Conn, currentPiece.Index, blockOffset, reqLength); err != nil {
-			log.Println(err)
+			log.Println("ERROR SENDING REQUESTS ", err)
 		}
 	}
-	log.Printf("peer %d requests sent for %v\n", p.Id, currentPiece)
+	//log.Printf("peer %d requests sent for %v\n", p.Id, currentPiece)
 }
