@@ -163,7 +163,7 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	req.URL.RawQuery = params.Encode()
 	req = req.WithContext(ctx)
 
-	fmt.Println(req.URL.String())
+	//fmt.Println(req.URL.String())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("Request failed: %v", err)
