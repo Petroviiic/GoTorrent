@@ -61,9 +61,10 @@ func NewManager(pieces []byte, pieceSize int, totalLength int, storage *storage.
 		}
 
 		workPiece := PieceOfWork{
-			Index:  j,
-			Hash:   hashCopy,
-			Length: currentPieceLength,
+			Index:       j,
+			Hash:        hashCopy,
+			Length:      currentPieceLength,
+			TotalBlocks: (currentPieceLength + BLOCK_SIZE - 1) / BLOCK_SIZE,
 		}
 
 		manager.workChannel <- workPiece
