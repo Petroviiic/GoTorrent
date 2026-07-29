@@ -56,7 +56,6 @@ func HashOk(downloadedPieces []*PieceOfResult, expected []byte) ([]byte, bool) {
 		}
 		gotData = append(gotData, piece.Downloaded...)
 	}
-
 	sum := sha1.Sum(gotData)
 	if bytes.Equal(sum[:], expected) {
 		return gotData, true
