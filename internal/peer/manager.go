@@ -46,8 +46,13 @@ func NewManager(pieces []byte, pieceSize int, totalLength int, storage *storage.
 		DownloadedPieces: make(map[int]struct{}),
 		CompletedPieces:  0,
 	}
-	// for i, j := 28000, 1400; i < len(pieces); j++ {
+
 	for i, j := startPiece*20, startPiece; i < len(pieces) && j < endPiece; j++ {
+		if _, exists := storage.Downloaded[j]; exists {
+			manager.TotalPieces--
+			i += 20
+			continue
+		}
 		endIndex := i + 20
 		if endIndex > len(pieces) {
 			endIndex = len(pieces)
@@ -71,6 +76,8 @@ func NewManager(pieces []byte, pieceSize int, totalLength int, storage *storage.
 
 		i += 20
 	}
+
+	storage.Downloaded = nil
 	return manager
 }
 
@@ -97,7 +104,7 @@ func (m *Manager) AddNewEntry(index int, data []byte) {
 
 	m.Storage.AddToBuffer(data, int64(index))
 
-	fmt.Printf("new entry index %v, storage len %v\n", index, currentLen)
+	fmt.Printf("new entry index %v, downloaded %d out of %d (%f %%)\n", index, currentLen, m.TotalPieces, float64(currentLen)/float64(m.TotalPieces)*100)
 }
 
 func (m *Manager) WorkerStarted() {
@@ -114,4 +121,8 @@ func (m *Manager) WorkerDone() {
 			close(m.DoneChannel)
 		})
 	}
+}
+
+func (m *Manager) IsWorkChannelEmpty() bool {
+	return len(m.workChannel) == 0
 }
