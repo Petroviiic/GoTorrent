@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha1"
 	"fmt"
@@ -75,26 +74,7 @@ func (s *Storage) Close() {
 		}
 	}
 }
-func (s *Storage) testfunc() {
-	file := s.files[0]
-	reader := bufio.NewReader(file.Handler)
 
-	buffer := make([]byte, s.pieceLength)
-	counter := 0
-	bufferStart := 0
-	for {
-		n, err := reader.Read(buffer[bufferStart:])
-		bufferStart = 0
-		if err != nil {
-			if err.Error() == io.EOF.Error() {
-				fmt.Println("tu sam", n, counter)
-				break
-			}
-			log.Fatalf("error reading file: %s", err)
-		}
-		counter++
-	}
-}
 func (s *Storage) ScanDiskForDownloaded(hashedPieces []byte) error {
 	fmt.Println("scanning disk for downloaded pieces...")
 	buffer := make([]byte, s.pieceLength)
