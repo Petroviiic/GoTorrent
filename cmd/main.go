@@ -39,6 +39,20 @@ func main() {
 	//neka prvo provjeri da li neki pieces vec postoje u fajlu da ne skida ponovo dzaba sve
 	//na disku je raw data, pa se mora provjeriti sha hash dijelova fajla!!
 
+	//-----------------------------------------------------------------------
+	//					OBRISI OVO, ZA TEST JE SAMO
+	// peerID1 := utils.GeneratePeerID([]byte("-GO0001-"))
+	// peers, err := tracker.GetPeers(torrentFile, infoHash, peerID1)
+
+	// if err != nil {
+	// 	fmt.Printf("Fatal: error %v", err)
+	// 	os.Exit(1)
+	// }
+	// fmt.Printf("%d peers successfully retrieved\n", len(peers))
+
+	// return
+	//-----------------------------------------------------------------------
+
 	storage, err := storage.NewStorage(fileList, int64(torrentFile.Info.PieceLength))
 
 	if err != nil {
@@ -68,6 +82,8 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("%d peers successfully retrieved\n", len(peers))
+
+	// return
 
 	workers := peer.ConnectToPeers(peers, infoHash, peerID)
 
