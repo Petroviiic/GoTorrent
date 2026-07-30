@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -37,17 +36,15 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		return nil, fmt.Errorf("something went wrong. 'left' is empty")
 	}
 
-	// return sendRequest(torrentData.Announce, infoHash, peerID, left)     // this works like the original first version of my code, checks only the official tracker
+	// return sendRequest(torrentData.Announce, infoHash, peerID, left)     // this works like the original, first version of my code, checks only the official tracker
 
 	trackerURLs := []string{}
-	if strings.HasPrefix(torrentData.Announce, "http") {
-		trackerURLs = append(trackerURLs, torrentData.Announce)
-	}
+	trackerURLs = append(trackerURLs, torrentData.Announce)
+
 	for _, tier := range torrentData.AnnounceList {
 		for _, link := range tier {
-			if strings.HasPrefix(link, "http") {
-				trackerURLs = append(trackerURLs, link)
-			}
+			trackerURLs = append(trackerURLs, link)
+
 		}
 	}
 	trackerURLs = append(trackerURLs,
@@ -82,7 +79,6 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		"http://tracker.dler.com:6969/announce",
 		"http://tracker.dhitechnical.com:6969/announce",
 	)
-
 	var (
 		wg          sync.WaitGroup
 		mutex       sync.Mutex
@@ -92,15 +88,29 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 	// mutex.Lock()
 	// mutex.Unlock()
 	for _, trackerURL := range trackerURLs {
+		url := strings.TrimSpace(trackerURL)
+		if url == "" {
+			continue
+		}
+
 		//concurrent
+		semaphore <- struct{}{}
 		wg.Add(1)
 		go func(url string) {
 			defer wg.Done()
 
-			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			newPeers, err := sendRequest(url, infoHash, peerID, left)
+			var newPeers []*Peer
+			var err error
+			if strings.HasPrefix(url, "http") {
+				newPeers, err = sendHTTPRequest(url, infoHash, peerID, left)
+			} else if strings.HasPrefix(url, "udp") {
+				newPeers, err = sendUDPRequest(url, infoHash, peerID, left)
+			} else {
+				return
+			}
+
 			if err != nil {
 				return
 			}
@@ -141,7 +151,7 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 	return peers, nil
 }
 
-func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Peer, error) {
+func sendHTTPRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Peer, error) {
 	req, err := http.NewRequest("GET", trackerURL, nil)
 	if err != nil {
 		return nil, err
@@ -166,14 +176,14 @@ func sendRequest(trackerURL string, infoHash, peerID []byte, left string) ([]*Pe
 	//fmt.Println(req.URL.String())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Request failed: %v", err)
+		// if !errors.Is(err, context.DeadlineExceeded) {
+		// 	log.Printf("Request failed: %v", err)
+		// }
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 
-	// fmt.Printf("Sirovi odgovor od trackera (string): %s\n", string(body))
-	// fmt.Printf("Sirovi odgovor (hex/bytes len): %d\n", len(body))
 	peers, err := decodePeerBody(body)
 	if err != nil {
 		return nil, err
