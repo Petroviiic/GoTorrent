@@ -23,15 +23,17 @@ type Storage struct {
 	pieceLength int64 //in bytes
 	totalSize   int64 //all files size
 
-	Buffer chan DownloadedPieceData
+	Buffer     chan DownloadedPieceData
+	Downloaded map[int]struct{}
 }
 
 func NewStorage(fileInfo []File, pieceLength int64) (*Storage, error) {
 	globalOffset := 0
 
 	storage := &Storage{
-		totalSize: 0,
-		Buffer:    make(chan DownloadedPieceData, 50),
+		totalSize:  0,
+		Buffer:     make(chan DownloadedPieceData, 50),
+		Downloaded: make(map[int]struct{}),
 	}
 
 	for _, file := range fileInfo {
@@ -94,53 +96,43 @@ func (s *Storage) testfunc() {
 	}
 }
 func (s *Storage) ScanDiskForDownloaded(hashedPieces []byte) error {
-
-	// s.testfunc()
-
-	// return nil
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
+	fmt.Println("scanning disk for downloaded pieces...")
 	buffer := make([]byte, s.pieceLength)
 
-	test := map[int]struct{}{}
 	bufferStart := 0
 	i := 0
 
 	counter := 0
 	for fileIdx, file := range s.files {
-		fmt.Println("curr file info", file.Size, file.Handler.Name())
-		reader := bufio.NewReader(file.Handler)
-
 		for {
-			n, err := reader.Read(buffer[bufferStart:])
-			if err != nil {
-				if err == io.EOF {
-					fmt.Println("tu sam", i, n, counter, fileIdx)
-					//return nil
-					break
-				}
-				log.Fatalf("error reading file: %s", err)
-			}
-			fmt.Println(n+bufferStart == len(buffer), n, bufferStart, n+bufferStart, len(buffer))
-			if n+bufferStart == len(buffer) || (n+bufferStart != len(buffer) && fileIdx == len(s.files)-1) {
+			n, err := io.ReadFull(file.Handler, buffer[bufferStart:])
+
+			totalRead := bufferStart + n
+			if totalRead == len(buffer) || (fileIdx == len(s.files)-1 && (err == io.EOF || err == io.ErrUnexpectedEOF)) {
 				expected := hashedPieces[i : i+20]
-				sum := sha1.Sum(buffer[:n+bufferStart])
-				if !bytes.Equal(sum[:], expected) {
-					fmt.Println("netacno", n, i/20, file.Handler.Name())
-					test[i/20] = struct{}{}
+				sum := sha1.Sum(buffer[:totalRead])
+
+				if bytes.Equal(sum[:], expected) {
+					s.Downloaded[i/20] = struct{}{}
 				}
+
 				i += 20
 				bufferStart = 0
 				counter++
-				clear(buffer)
 			} else {
-				bufferStart += n
+				bufferStart = totalRead
 			}
 
+			if err != nil {
+				if err == io.EOF || err == io.ErrUnexpectedEOF {
+					break
+				}
+				log.Printf("error reading file: %s\n", err)
+				return err
+			}
 		}
 	}
-	fmt.Println(test, len(test), counter, s.totalSize)
+
 	return nil
 }
 
