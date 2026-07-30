@@ -39,7 +39,6 @@ func main() {
 	//neka prvo provjeri da li neki pieces vec postoje u fajlu da ne skida ponovo dzaba sve
 	//na disku je raw data, pa se mora provjeriti sha hash dijelova fajla!!
 
-	//takodje mogu dodati procentnost skinutosti, kao pieces_in_queue/total_num_of_pieces
 	storage, err := storage.NewStorage(fileList, int64(torrentFile.Info.PieceLength))
 
 	if err != nil {
@@ -47,7 +46,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := storage.ScanDiskForDownloaded(torrentFile.Info.Pieces); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
+
+	// workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage, 1347, -1)
+	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage, 0, -1)
+
+	if workManager.IsWorkChannelEmpty() {
+		fmt.Println("all pieces are already downloaded")
+		return
+	}
 
 	peers, err := tracker.GetPeers(torrentFile, infoHash, peerID)
 
@@ -64,7 +76,6 @@ func main() {
 	if len(workers) == 0 {
 		return
 	}
-	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage, 1347, -1)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var storageWg sync.WaitGroup
@@ -95,13 +106,14 @@ func main() {
 
 	fmt.Println("done", len(workManager.DownloadedPieces), len(workManager.DownloadedPieces) == workManager.TotalPieces)
 
-	if len(workManager.DownloadedPieces) != workManager.TotalPieces {
-		for i := range workManager.TotalPieces {
-			if _, ok := workManager.DownloadedPieces[i]; !ok { //&& i > 1400 {
-				fmt.Println(i)
-			}
-		}
-	}
+	// if len(workManager.DownloadedPieces) != workManager.TotalPieces {
+	// 	for i := range workManager.TotalPieces {
+	// 		if _, ok := workManager.DownloadedPieces[i]; !ok { //&& i > 1400 {
+	// 			fmt.Println(i)
+	// 		}
+	// 	}
+	// 	//fmt.Println(workManager.DownloadedPieces)
+	// }
 
 	storage.Close()
 }
