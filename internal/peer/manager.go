@@ -44,12 +44,11 @@ func NewManager(pieces []byte, pieceSize int, totalLength int, storage *storage.
 		DoneChannel:      make(chan struct{}),
 		Storage:          storage,
 		DownloadedPieces: make(map[int]struct{}),
-		CompletedPieces:  0,
+		CompletedPieces:  int64(len(storage.Downloaded)),
 	}
 
 	for i, j := startPiece*20, startPiece; i < len(pieces) && j < endPiece; j++ {
 		if _, exists := storage.Downloaded[j]; exists {
-			manager.TotalPieces--
 			i += 20
 			continue
 		}
@@ -61,7 +60,7 @@ func NewManager(pieces []byte, pieceSize int, totalLength int, storage *storage.
 		copy(hashCopy, pieces[i:endIndex])
 
 		currentPieceLength := pieceSize
-		if j == totalPieces-1 {
+		if j == (len(pieces)/20)-1 {
 			currentPieceLength = totalLength - (j * pieceSize)
 		}
 
@@ -90,10 +89,11 @@ func (m *Manager) AddNewEntry(index int, data []byte) {
 		return
 	}
 	m.DownloadedPieces[index] = struct{}{}
+	m.CompletedPieces++
 
-	currentLen := len(m.DownloadedPieces)
+	currentLen := m.CompletedPieces
 
-	if currentLen == m.TotalPieces {
+	if currentLen == int64(m.TotalPieces) {
 		fmt.Println("download done")
 		m.once.Do(func() {
 			close(m.DoneChannel)
