@@ -29,8 +29,6 @@ type TorrentFileItem struct {
 }
 
 func LoadAndDecode(path string) (*TorrentFile, []byte, error) {
-	//cekiraj jel validan path
-
 	buffer, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, err

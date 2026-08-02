@@ -111,7 +111,6 @@ func TestDecoders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			decoder := bencode.NewDecoder(tt.buffer)
 
-			//res, index, err := decoder.Decoders[tt.buffer[0]](0)
 			res, index, err := decoder.DecodeByte(0)
 
 			if err != nil {
