@@ -69,7 +69,7 @@ func sendUDPRequest(trackerURL string, infoHash, peerID []byte, left string) ([]
 		return nil, fmt.Errorf("failed to connect to tracker after retries")
 	}
 	for retry := 0; retry <= 2; retry++ {
-		// waitTime := time.Duration(15*(1<<retry)) * time.Second
+		// waitTime := time.Duration(15*(1<<retry)) * time.Second		//official bep15 documentation recommends this
 		waitTime := time.Duration(2500*(1<<retry)) * time.Millisecond
 
 		transactionID := rand.Uint32()
@@ -110,7 +110,7 @@ func prepareConnectRequest(transactionId int32) []byte {
 }
 func parseConnectResponse(buffer []byte, transactionID uint32) (bool, uint64) {
 	if len(buffer) != 16 {
-		log.Printf("Wrong response size: %d bytes\n", len(buffer))
+		log.Printf("Wrong response size: expects %d bytes, but got %d\n", 16, len(buffer))
 		return false, 0
 	}
 
@@ -121,13 +121,13 @@ func parseConnectResponse(buffer []byte, transactionID uint32) (bool, uint64) {
 
 	action := binary.BigEndian.Uint32(buffer[0:4])
 	if action != CONNECT_ACTION_CONSTANT {
-		log.Printf("Wrong action code: %d\n", action)
+		log.Printf("Wrong action code: expects %d, got %d\n", CONNECT_ACTION_CONSTANT, action)
 		return false, 0
 	}
 
 	gotTransactionID := binary.BigEndian.Uint32(buffer[4:8])
 	if transactionID != gotTransactionID {
-		log.Printf("Wrong transaction id: %d\n", gotTransactionID)
+		log.Printf("Wrong transaction id: expects %d, got %d\n", transactionID, gotTransactionID)
 		return false, 0
 	}
 
@@ -157,7 +157,7 @@ func prepareAnnounceRequest(connectionId uint64, transactionId uint32, infoHash,
 
 func parseAnnonceResponse(buffer []byte, transactionID uint32) ([]*Peer, error) {
 	if len(buffer) < 20 {
-		return nil, fmt.Errorf("Short response size: %d bytes\n", len(buffer))
+		return nil, fmt.Errorf("Short response size: minimum expected %d, got %d bytes\n", 20, len(buffer))
 	}
 
 	// 0           32-bit integer  action          1 // announce
@@ -171,12 +171,12 @@ func parseAnnonceResponse(buffer []byte, transactionID uint32) ([]*Peer, error) 
 
 	action := binary.BigEndian.Uint32(buffer[0:4])
 	if action != ANNOUNCE_ACTION_CONSTANT {
-		return nil, fmt.Errorf("Wrong action code: %d\n", action)
+		return nil, fmt.Errorf("Wrong action code: expects %d, got %d\n", ANNOUNCE_ACTION_CONSTANT, action)
 	}
 
 	gotTransactionID := binary.BigEndian.Uint32(buffer[4:8])
 	if transactionID != gotTransactionID {
-		return nil, fmt.Errorf("Wrong transaction id: %d\n", gotTransactionID)
+		return nil, fmt.Errorf("Wrong transaction id: expects %d, got %d\n", transactionID, gotTransactionID)
 	}
 
 	//TODO
@@ -185,8 +185,6 @@ func parseAnnonceResponse(buffer []byte, transactionID uint32) ([]*Peer, error) 
 	//for stats, gui
 	// leechers := binary.BigEndian.Uint32(buffer[12:16])
 	// seeders := binary.BigEndian.Uint32(buffer[16:20])
-
-	// fmt.Println(interval, leechers, seeders)
 
 	peers := DecodePeerList(buffer[20:])
 	return peers, nil
