@@ -1,9 +1,9 @@
 package peer
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"sync"
@@ -14,6 +14,7 @@ import (
 
 const BLOCK_SIZE = 16384
 const BLOCKS_SENT_PER_REQUEST = 5
+const MAX_WRONG_HASHES_ALLOWED = 6
 
 type PieceOfWork struct {
 	Index       int
@@ -40,17 +41,32 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 	blocksArrivedCount := 0
 	blocksArrived := []*PieceOfResult{}
 	var currentPiece *PieceOfWork
-	for {
 
+	var retrieveAndRequestPiece func()
+	retrieveAndRequestPiece = func() {
+		currentPiece = p.getNextAvailablePiece(ctx)
+		if currentPiece != nil {
+			blocksArrived = make([]*PieceOfResult, currentPiece.TotalBlocks)
+			blocksArrivedCount = 0
+			startBlockIndex = 0
+			p.sendRequests(currentPiece, startBlockIndex)
+		}
+	}
+	for {
 		select {
 		case <-ctx.Done():
+			if currentPiece != nil {
+				p.Manager.workChannel <- *currentPiece
+			}
 			return
 		case <-p.Manager.DoneChannel:
+			if currentPiece != nil {
+				p.Manager.workChannel <- *currentPiece
+			}
 			return
 		default:
 
-			p.Conn.SetDeadline(time.Now().Add(5 * time.Second))
-
+			p.Conn.SetReadDeadline(time.Now().Add(120 * time.Second))
 			msg, err := message.Deserialize(p.Conn)
 
 			if err != nil {
@@ -63,16 +79,6 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 				return
 			}
 
-			if currentPiece == nil && !p.Choked && p.Bitfield != nil && !bytes.Equal(p.Bitfield, []byte{0}) {
-				currentPiece = p.getNextAvailablePiece()
-				if currentPiece != nil {
-					blocksArrived = make([]*PieceOfResult, currentPiece.TotalBlocks)
-					blocksArrivedCount = 0
-					startBlockIndex = 0
-					p.sendRequests(currentPiece, startBlockIndex)
-				}
-			}
-
 			switch msg.ID {
 			case message.Choke:
 				p.Choked = true
@@ -81,18 +87,25 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 					p.Manager.workChannel <- *currentPiece
 					blocksArrivedCount = 0
 					startBlockIndex = 0
+					currentPiece = nil
 					blocksArrived = nil
 				}
 			case message.Unchoke:
 				p.Choked = false
+				if currentPiece == nil {
+					retrieveAndRequestPiece()
+				}
 			case message.Interested:
 				p.Interested = true
 			case message.Not_interested:
 				p.Interested = false
 			case message.Have:
-				// index := binary.BigEndian.Uint32(msg.Payload[1:])
 				index := binary.BigEndian.Uint32(msg.Payload[0:])
 				p.UpdatePiece(int(index))
+
+				if currentPiece == nil && !p.Choked {
+					retrieveAndRequestPiece()
+				}
 			case message.Bitfield:
 				p.Bitfield = msg.Payload
 			case message.Request:
@@ -123,25 +136,27 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 
 				if blocksArrivedCount == currentPiece.TotalBlocks {
 					if downloadedData, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
-						//sacuvaj taj hash na disku, ili u mapi po indeksu currentpiece.Index
 						p.Manager.AddNewEntry(currentPiece.Index, downloadedData)
 					} else {
+						fmt.Println("pogresan ", p.Id, p.Conn.RemoteAddr().String(), currentPiece, blocksArrivedCount, blocksArrived)
 						log.Printf("peer %v wrong hash for piece %v\n", p.Id, currentPiece.Index)
+
 						p.Manager.workChannel <- *currentPiece
+
+						p.WrongHashes[currentPiece.Index]++
+						p.TotalWrongHashes++
+
+						if p.TotalWrongHashes >= MAX_WRONG_HASHES_ALLOWED {
+							log.Printf("peer %v DISCONNECTED (too many bad hashes: %d)\n", p.Id, p.TotalWrongHashes)
+							return
+						}
 					}
 
-					// u svakom slucaju
 					currentPiece = nil
 					blocksArrived = nil
 
 					if !p.Choked {
-						currentPiece = p.getNextAvailablePiece()
-						if currentPiece != nil {
-							blocksArrived = make([]*PieceOfResult, currentPiece.TotalBlocks)
-							blocksArrivedCount = 0
-							startBlockIndex = 0
-							p.sendRequests(currentPiece, startBlockIndex)
-						}
+						retrieveAndRequestPiece()
 					}
 				}
 			case message.Cancel:
@@ -153,32 +168,48 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 	}
 }
 
-func (p *PeerClient) getNextAvailablePiece() *PieceOfWork {
+func (p *PeerClient) getNextAvailablePiece(ctx context.Context) *PieceOfWork {
 	log.Printf("peer %v finding next available piece\n", p.Id)
 
 	i := 0
+	visited := make(map[int]struct{})
 	for {
 		if i >= p.Manager.TotalPieces {
 			log.Printf("peer %v couldnt find any available pieces\n", p.Id)
 			return nil
 		}
 		select {
+		case <-ctx.Done():
+			return nil
+		case <-p.Manager.DoneChannel:
+			return nil
 		case piece, ok := <-p.Manager.workChannel:
 			if !ok {
 				return nil
 			}
 
+			i++
 			if p.HasPiece(piece.Index) {
+				if tries := p.WrongHashes[piece.Index]; tries >= 2 {
+					log.Printf("peer %v skipping piece %d due to %d bad hash attempts\n", p.Id, piece.Index, tries)
+
+					p.Manager.workChannel <- piece
+					continue
+				}
 				log.Printf("peer %v next piece : %v\n", p.Id, piece)
 				return &piece
 			}
 
-			i++
+			if _, seen := visited[piece.Index]; seen {
+				p.Manager.workChannel <- piece
+				return nil
+			}
+
+			visited[piece.Index] = struct{}{}
 			p.Manager.workChannel <- piece
 		default:
 			return nil
 		}
-
 	}
 }
 func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int) {
@@ -195,8 +226,7 @@ func (p *PeerClient) sendRequests(currentPiece *PieceOfWork, startBlockIndex int
 		}
 
 		if err := message.SendRequest(p.Conn, currentPiece.Index, blockOffset, reqLength); err != nil {
-			log.Println("ERROR SENDING REQUESTS ", err)
+			log.Printf("ERROR SENDING REQUESTS; peer id: %v; error: %v\n", p.Id, err)
 		}
 	}
-	//log.Printf("peer %d requests sent for %v\n", p.Id, currentPiece)
 }
