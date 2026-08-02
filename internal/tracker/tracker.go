@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -20,6 +21,8 @@ type Peer struct {
 }
 
 func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Peer, error) {
+	log.Println("retrieving peers...")
+
 	left := ""
 	if len(torrentData.Info.Files) == 0 {
 		left = fmt.Sprintf("%d", torrentData.Info.Length)
@@ -33,10 +36,8 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 	}
 
 	if left == "" {
-		return nil, fmt.Errorf("something went wrong. 'left' is empty")
+		return nil, fmt.Errorf("something went wrong. field 'left' is empty")
 	}
-
-	// return sendRequest(torrentData.Announce, infoHash, peerID, left)     // this works like the original, first version of my code, checks only the official tracker
 
 	trackerURLs := []string{}
 	trackerURLs = append(trackerURLs, torrentData.Announce)
@@ -47,38 +48,6 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 
 		}
 	}
-	// trackerURLs = append(trackerURLs,
-	// 	"http://tracker.opentrackr.org:1337/announce",
-	// 	"http://open.tracker.cl:1337/announce",
-	// 	"http://www.torrentsnipe.info:2701/announce",
-	// 	"http://www.genesis-sp.org:2710/announce",
-	// 	"http://tracker2.dler.org:80/announce",
-	// 	"http://tracker.zhuqiy.dgj055.icu:80/announce",
-	// 	"http://tracker.xiaoduola.xyz:6969/announce",
-	// 	"http://tracker.sbsub.com:2710/announce",
-	// 	"http://tracker.renfei.net:8080/announce",
-	// 	"http://tracker.qu.ax:6969/announce",
-	// 	"http://tracker.mywaifu.best:6969/announce",
-	// 	"http://tracker.lintk.me:2710/announce",
-	// 	"http://tracker.ipv6tracker.org:80/announce",
-	// 	"http://tracker.dler.org:6969/announce",
-	// 	"http://tracker.bt4g.com:2095/announce",
-	// 	"http://tracker.bt-hash.com:80/announce",
-	// 	"http://tracker.bittor.pw:1337/announce",
-	// 	"http://tracker.23794.top:6969/announce",
-	// 	"http://tr.kxmp.cf:80/announce",
-	// 	"http://seeders-paradise.org:80/announce",
-	// 	"http://lucke.fenesisu.moe:6969/announce",
-	// 	"http://buny.uk:6969/announce",
-	// 	"http://bittorrent-tracker.e-n-c-r-y-p-t.net:1337/announce",
-	// 	"http://1337.abcvg.info:80/announce",
-	// 	"http://tracker.zhuqiy.com:80/announce",
-	// 	"http://tracker.waaa.moe:6969/announce",
-	// 	"http://tracker.privateseedbox.xyz:2710/announce",
-	// 	"http://tracker.nexusstream.eu:6969/announce",
-	// 	"http://tracker.dler.com:6969/announce",
-	// 	"http://tracker.dhitechnical.com:6969/announce",
-	// )
 
 	customTrackers := loadTrackers()
 	trackerURLs = append(trackerURLs, customTrackers...)
@@ -89,8 +58,7 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 		uniquePeers = make(map[string]*Peer)
 		semaphore   = make(chan struct{}, 8) //amount of concurrent requests allowed
 	)
-	// mutex.Lock()
-	// mutex.Unlock()
+
 	for _, trackerURL := range trackerURLs {
 		url := strings.TrimSpace(trackerURL)
 		if url == "" {
@@ -127,25 +95,7 @@ func GetPeers(torrentData *bencode.TorrentFile, infoHash, peerID []byte) ([]*Pee
 			mutex.Unlock()
 
 		}(trackerURL)
-
-		// //sequential
-		// newPeers, err := sendRequest(trackerURL, infoHash, peerID, left)
-
-		// if err != nil {
-		// 	continue
-		// }
-
-		// for _, p := range newPeers {
-		// 	key := fmt.Sprintf("%s:%d", p.IP, p.Port)
-		// 	uniquePeers[key] = p
-		// }
 	}
-	// go func() {
-	// 	time.Sleep(30 * time.Second)
-	// 	println("\n--- DEADLOCKED GOROUTINES ---")
-	// 	pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
-	// 	println("------------------------------------\n")
-	// }()
 
 	wg.Wait()
 	peers := []*Peer{}
@@ -174,10 +124,10 @@ func sendHTTPRequest(trackerURL string, infoHash, peerID []byte, left string) ([
 	req.Header.Set("User-Agent", "qBittorrent/4.6.3")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
 	req.URL.RawQuery = params.Encode()
 	req = req.WithContext(ctx)
 
-	//fmt.Println(req.URL.String())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		// if !errors.Is(err, context.DeadlineExceeded) {
