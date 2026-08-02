@@ -3,7 +3,6 @@ package peer
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"log"
 	"sync"
@@ -110,8 +109,6 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 				p.Bitfield = msg.Payload
 			case message.Request:
 			case message.Piece:
-				//dosao piece koji sam requestovao
-
 				if currentPiece == nil || blocksArrived == nil {
 					log.Printf("peer %v piece received but skipping it because : %v %v\n", p.Id, currentPiece == nil, blocksArrived == nil)
 
@@ -138,7 +135,6 @@ func (p *PeerClient) StartWorker(wg *sync.WaitGroup, ctx context.Context) {
 					if downloadedData, ok := HashOk(blocksArrived, currentPiece.Hash); ok {
 						p.Manager.AddNewEntry(currentPiece.Index, downloadedData)
 					} else {
-						fmt.Println("pogresan ", p.Id, p.Conn.RemoteAddr().String(), currentPiece, blocksArrivedCount, blocksArrived)
 						log.Printf("peer %v wrong hash for piece %v\n", p.Id, currentPiece.Index)
 
 						p.Manager.workChannel <- *currentPiece
