@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime/pprof"
 	"sync"
-	"time"
 
 	"github.com/Petroviiic/GoTorrent/internal/bencode"
 	"github.com/Petroviiic/GoTorrent/internal/peer"
@@ -15,9 +13,7 @@ import (
 	"github.com/Petroviiic/GoTorrent/internal/utils"
 )
 
-const DOWNLOAD_PATH = "E:\\BittorrentClientTest"
-
-// const DOWNLOAD_PATH = "C:\\BittorrentClientTest"
+const DOWNLOAD_PATH = "E:\\BittorrentClientTest\\test"
 
 func main() {
 	if len(os.Args) != 2 {
@@ -36,22 +32,6 @@ func main() {
 
 	fileList, totalSize := storage.GetFilesList(DOWNLOAD_PATH, &torrentFile.Info)
 	fmt.Printf("torrent file successfully loaded; pieces count : %v, files %v, number of files %v, one piece length : %v\n", len(torrentFile.Info.Pieces)/20, fileList, len(fileList), torrentFile.Info.PieceLength)
-	//neka prvo provjeri da li neki pieces vec postoje u fajlu da ne skida ponovo dzaba sve
-	//na disku je raw data, pa se mora provjeriti sha hash dijelova fajla!!
-
-	//-----------------------------------------------------------------------
-	//					OBRISI OVO, ZA TEST JE SAMO
-	// peerID1 := utils.GeneratePeerID([]byte("-GO0001-"))
-	// peers, err := tracker.GetPeers(torrentFile, infoHash, peerID1)
-
-	// if err != nil {
-	// 	fmt.Printf("Fatal: error %v", err)
-	// 	os.Exit(1)
-	// }
-	// fmt.Printf("%d peers successfully retrieved\n", len(peers))
-
-	// return
-	//-----------------------------------------------------------------------
 
 	storage, err := storage.NewStorage(fileList, int64(torrentFile.Info.PieceLength))
 
@@ -67,7 +47,6 @@ func main() {
 
 	peerID := utils.GeneratePeerID([]byte("-GO0001-"))
 
-	// workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage, 1347, -1)
 	workManager := peer.NewManager(torrentFile.Info.Pieces, torrentFile.Info.PieceLength, totalSize, storage, 0, -1)
 
 	if workManager.IsWorkChannelEmpty() {
@@ -83,8 +62,6 @@ func main() {
 	}
 	fmt.Printf("%d peers successfully retrieved\n", len(peers))
 
-	// return
-
 	workers := peer.ConnectToPeers(peers, infoHash, peerID)
 
 	fmt.Printf("connected to %v clients\n", len(workers))
@@ -97,12 +74,7 @@ func main() {
 	var storageWg sync.WaitGroup
 	storageWg.Add(1)
 	go storage.StartWorker(&storageWg)
-	go func() {
-		time.Sleep(30 * time.Second)
-		println("\n--- DEADLOCKED GOROUTINES ---")
-		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
-		println("------------------------------------\n")
-	}()
+
 	var peerWg sync.WaitGroup
 	for i, worker := range workers {
 		worker.Manager = workManager
@@ -120,16 +92,7 @@ func main() {
 	close(storage.Buffer)
 	storageWg.Wait()
 
-	fmt.Println("done", len(workManager.DownloadedPieces), len(workManager.DownloadedPieces) == workManager.TotalPieces)
-
-	// if len(workManager.DownloadedPieces) != workManager.TotalPieces {
-	// 	for i := range workManager.TotalPieces {
-	// 		if _, ok := workManager.DownloadedPieces[i]; !ok { //&& i > 1400 {
-	// 			fmt.Println(i)
-	// 		}
-	// 	}
-	// 	//fmt.Println(workManager.DownloadedPieces)
-	// }
+	fmt.Printf("download done: %v; number of downloaded pieces %d;\n", int(workManager.CompletedPieces) == workManager.TotalPieces, len(workManager.DownloadedPieces))
 
 	storage.Close()
 }
