@@ -110,7 +110,7 @@ func prepareConnectRequest(transactionId int32) []byte {
 }
 func parseConnectResponse(buffer []byte, transactionID uint32) (bool, uint64) {
 	if len(buffer) != 16 {
-		log.Printf("Wrong response size: expects %d bytes, but got %d\n", 16, len(buffer))
+		log.Printf("Wrong response size: expected %d bytes, but got %d\n", 16, len(buffer))
 		return false, 0
 	}
 
@@ -121,13 +121,13 @@ func parseConnectResponse(buffer []byte, transactionID uint32) (bool, uint64) {
 
 	action := binary.BigEndian.Uint32(buffer[0:4])
 	if action != CONNECT_ACTION_CONSTANT {
-		log.Printf("Wrong action code: expects %d, got %d\n", CONNECT_ACTION_CONSTANT, action)
+		log.Printf("Wrong action code: expected %d, got %d\n", CONNECT_ACTION_CONSTANT, action)
 		return false, 0
 	}
 
 	gotTransactionID := binary.BigEndian.Uint32(buffer[4:8])
 	if transactionID != gotTransactionID {
-		log.Printf("Wrong transaction id: expects %d, got %d\n", transactionID, gotTransactionID)
+		log.Printf("Wrong transaction id: expected %d, got %d\n", transactionID, gotTransactionID)
 		return false, 0
 	}
 
@@ -171,12 +171,12 @@ func parseAnnonceResponse(buffer []byte, transactionID uint32) ([]*Peer, error) 
 
 	action := binary.BigEndian.Uint32(buffer[0:4])
 	if action != ANNOUNCE_ACTION_CONSTANT {
-		return nil, fmt.Errorf("Wrong action code: expects %d, got %d\n", ANNOUNCE_ACTION_CONSTANT, action)
+		return nil, fmt.Errorf("Wrong action code: expected %d, got %d\n", ANNOUNCE_ACTION_CONSTANT, action)
 	}
 
 	gotTransactionID := binary.BigEndian.Uint32(buffer[4:8])
 	if transactionID != gotTransactionID {
-		return nil, fmt.Errorf("Wrong transaction id: expects %d, got %d\n", transactionID, gotTransactionID)
+		return nil, fmt.Errorf("Wrong transaction id: expected %d, got %d\n", transactionID, gotTransactionID)
 	}
 
 	//TODO
