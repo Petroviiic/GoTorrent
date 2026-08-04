@@ -1,5 +1,8 @@
 # GoTorrent
 
+![Go Version](https://img.shields.io/badge/Go-1.21%2B-00ADD8?style=flat&logo=go)
+![Protocol](https://img.shields.io/badge/Protocol-BitTorrent%20%2F%20BEP--15-orange)
+
 A high-performance, lightweight BitTorrent client built from scratch in Go. All features implemented in this project follow BEP-15 protocol rules.
 
 ## Features
@@ -42,3 +45,34 @@ A high-performance, lightweight BitTorrent client built from scratch in Go. All 
     Decision: Implemented sequential piece ordering by default.
 
     Trade-Off: Ideal for media streaming/previewing (e.g., watching video while downloading), but sub-optimal for overall swarm health compared to standard BitTorrent rarest-first piece distribution.
+
+
+## Quick Start
+**Prerequisites**
+
+    Go 1.21+ installed.
+
+**Installation & Execution**
+
+1. Clone the repository:
+    
+    Bash
+
+    git clone https://[github.com/Petroviiic/gotorrent.git](https://github.com/Petroviiic/GoTorrent)
+
+    cd gotorrent
+
+2. Build and run the binary:
+
+    Bash
+
+    go run ./... .\sample.torrent (auto downloaded to E:\\laskd)
+
+
+## Future TO-DOs / Missing Features
+
+* Rarest-First Strategy: Implement dynamic swarm piece frequency tracking to prioritize rare pieces.
+
+* Centralized Piece Coordinator: Replace channel rotation with a centralized scheduler.
+
+* Seeding Support: Upload verified pieces to requesting peers in the swarm.
