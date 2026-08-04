@@ -16,7 +16,7 @@ A high-performance, lightweight BitTorrent client built from scratch in Go. Desi
 
 * **Disk Resume & Integrity Checking:** On-startup disk scanner that verifies existing local pieces against SHA-1 torrent hashes to resume downloads seamlessly to avoid re-downloading pieces that have already been successfully downloaded.
 
-*    **Cross-Platform Memory Pre-allocation:** Fast, non-sparse disk space reservation for both **Linux** and **Windows** prior to downloading.
+* **Cross-Platform Memory Pre-allocation:** Fast, non-sparse disk space reservation for both **Linux** and **Windows** prior to downloading.
 
 * **Multi-Tier Fault Tolerance:**
     * Level 1: Automatic piece re-queuing on hash verification failures.
@@ -66,6 +66,8 @@ A high-performance, lightweight BitTorrent client built from scratch in Go. Desi
    # Direct execution
     go run ./... .\sample.torrent
    ``` 
+   
+> **Note:** The download destination is currently configured via the `DOWNLOAD_PATH` constant in `main.go` (defaults to `E:\GoBittorrentClient`). Make sure to adjust this path to a valid directory on your system before running.
 
 ## Future TO-DOs / Missing Features
 

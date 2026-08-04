@@ -13,7 +13,7 @@ import (
 	"github.com/Petroviiic/GoTorrent/internal/utils"
 )
 
-const DOWNLOAD_PATH = "E:\\BittorrentClientTest\\test"
+const DOWNLOAD_PATH = "E:\\GoBittorrentClient"
 
 func main() {
 	if len(os.Args) != 2 {
