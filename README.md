@@ -1,18 +1,17 @@
 # GoTorrent
 
-A high-performance, lightweight BitTorrent client built from scratch in Go. 
+A high-performance, lightweight BitTorrent client built from scratch in Go. All features implemented in this project follow BEP-15 protocol rules.
 
 ## Features
 
-*    **Custom Bencode Parser:** Built without external libraries to handle raw torrent metadata, strings, integers, lists, and nested dictionaries.
+*    **Custom Bencode Parser:** Built without external libraries to handle all raw torrent file structures, such as strings, integers, lists, and nested dictionaries.
 
-*   **Multi-Tracker Architecture:** Supports both HTTP and UDP trackering (BEP 15) with dynamic failover between announce and announce-list endpoints.
+*   **HTTP & UDP Trackers Support:** Connection to both HTTP and UDP trackers gathered from announce field of torrent file, with dynamic failover and retry mechanism for UDP trackers.
 
-*    **Full Peer Wire Protocol:** Native TCP handshake and binary message engine (Keep-Alive, Choke, Unchoke, Interested, Have, Bitfield, Request, Piece, Cancel).
+*    **Peer Wire Protocol:** Native TCP handshake and binary message engine (Keep-Alive, Choke, Unchoke, Interested, Have, Bitfield, Request, Piece, Cancel).
 
-*   **Disk Resume & Integrity Checking:** On-startup disk scanner that verifies existing local pieces against SHA-1 torrent hashes to resume downloads seamlessly.
+*   **Disk Resume & Integrity Checking:** On-startup disk scanner that verifies existing local pieces against SHA-1 torrent hashes to resume downloads seamlessly and avoid re-downloading pieces that have already been successfully downloaded.
 
-*    **Cross-Platform Pre-allocation:** Fast, non-sparse disk space reservation for both Linux and Windows prior to downloading.
+*    **Cross-Platform Memory Pre-allocation:** Fast, non-sparse disk space reservation for both Linux and Windows prior to downloading.
 
-*    **Sequential Streaming Strategy:** In-order piece distribution via worker channels, enabling early file preview/streaming for media formats.
 
