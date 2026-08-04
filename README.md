@@ -47,31 +47,28 @@ A high-performance, lightweight BitTorrent client built from scratch in Go. Desi
 ---
 
 ## Quick Start
-**Prerequisites**
+### Prerequisites
 
-    Go 1.21+ installed.
+* **Go 1.21** or higher installed on your system.
 
-**Installation & Execution**
+### Installation & Build
 
-1. Clone the repository:
-    
-    Bash
+1. **Clone the repository:**
 
-    git clone https://[github.com/Petroviiic/gotorrent.git](https://github.com/Petroviiic/GoTorrent)
+    ```bash
+    # Clone the repository
+    git clone https://github.com/Petroviiic/GoTorrent 
+    ```
 
-    cd gotorrent
+2. **Build & Run**
 
-2. Build and run the binary:
-
-    Bash
-
-    go run ./... .\sample.torrent (auto downloaded to E:\\laskd)
-
+    ```bash
+   # Direct execution
+    go run ./... .\sample.torrent
+   ``` 
 
 ## Future TO-DOs / Missing Features
 
-* Rarest-First Strategy: Implement dynamic swarm piece frequency tracking to prioritize rare pieces.
-
-* Centralized Piece Coordinator: Replace channel rotation with a centralized scheduler.
-
-* Seeding Support: Upload verified pieces to requesting peers in the swarm.
+* **Rarest-First Strategy:** Implement dynamic swarm piece frequency tracking to prioritize rare pieces.
+* **Centralized Piece Coordinator:** Replace channel rotation with a centralized scheduler.
+* **Seeding Support:** Upload verified pieces to requesting peers in the swarm.
